@@ -33,7 +33,7 @@ parser.add_argument('seeds', help="number of seeds of input", type=int)
 parser.add_argument('grad_iterations', help="number of iterations of gradient descent", type=int)
 parser.add_argument('threshold', help="threshold for determining neuron activated", default = 0, type=float)
 parser.add_argument('coverage', help="coverage option", choices=['dxp', 'kmnc', 'nbc', 'snbc'])
-parser.add_argument('test_generation', help="test generation", choices=['dxp', 'fgsm'])
+parser.add_argument('test_generation', help="test generation", choices=['dxp', 'basic', 'fgsm'])
 
 parser.add_argument('-t', '--target_model', help="target model that we want it predicts differently",
                     choices=[0, 1, 2], default=0, type=int)

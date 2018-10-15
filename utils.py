@@ -85,7 +85,7 @@ def normalize(x):
 
 
 def constarint_synonym(gen, grads_value, args):
-    if args.test_generation == 'fgsm':
+    if args.test_generation == 'basic':
         new_grads = np.ones_like(grads_value)
         grad_mean = np.mean(grads_value)
         grads = grad_mean * new_grads
@@ -108,6 +108,35 @@ def constarint_synonym(gen, grads_value, args):
                 gen[index] = syns[0].name()
                 return_type = True
             j += 1
+
+        return gen, return_type
+
+    elif args.test_generation == 'dxp':
+        new_grads = np.ones_like(grads_value)
+        grad_mean = np.mean(grads_value)
+        grads = grad_mean * new_grads
+
+        iterate = np.amax(grads)
+        iterate = iterate * 1000
+
+        syns = []
+        i = 0
+        j = 0
+        return_type = False
+
+        while j < iterate:
+            while len(syns) == 0 and i < len(gen):
+                i += 1
+                index = randint(0, len(gen) - 1)
+                syns = wordnet.synsets(str(gen[index]))
+
+            if len(gen) != i:
+                gen[index] = syns[0].name()
+                return_type = True
+            j += 1
+
+        return gen, return_type
+    elif args.test_generation == 'fgsm':
 
         return gen, return_type
 
@@ -140,9 +169,18 @@ def neuron_to_cover(model_layer_dict):
 
 
 def neuron_covered(model_layer_dict, args):
-    if args.converage == 'dxp':
+    if args.coverage == 'dxp':
         covered_neurons = len([v for v in model_layer_dict.values() if v])
         total_neurons = len(model_layer_dict)
+        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
+    elif args.coverage == 'kmnc':
+
+        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
+    elif args.coverage == 'nbc':
+
+        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
+    elif args.coverage == 'snbc':
+
         return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
 
 
@@ -172,7 +210,7 @@ def scale(intermediate_layer_output, rmax=1, rmin=0):
 
 
 def update_coverage(input_data, model, model_layer_dict, args):
-    if args.converage == 'dxp':
+    if args.coverage == 'dxp':
         layer_names = [layer.name for layer in model.layers if
                        'concatenate' not in layer.name and 'input' not in layer.name]
 
@@ -185,6 +223,12 @@ def update_coverage(input_data, model, model_layer_dict, args):
             for num_neuron in range(scaled.shape[-1]):
                 if np.mean(scaled[..., num_neuron]) > args.threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
                     model_layer_dict[(layer_names[i], num_neuron)] = True
+    elif args.coverage == 'kmnc':
+        pass
+    elif args.coverage == 'nbc':
+        pass
+    elif args.coverage == 'snbc':
+        pass
 
 
 def full_coverage(model_layer_dict):
