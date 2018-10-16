@@ -122,7 +122,7 @@ for _ in range(args.seeds):
         update_coverage(gen_value, model3, model_layer_dict3, args)
 
         print(bcolors.OKGREEN + 'covered neurons percentage %d neurons %.3f, %d neurons %.3f, %d neurons %.3f'
-              % (len(model_layer_dict1), neuron_covered(model_layer_dict1)[2], len(model_layer_dict2),
+              % (len(model_layer_dict1), neuron_covered(model_layer_dict1, args)[2], len(model_layer_dict2),
                  neuron_covered(model_layer_dict2, args)[2], len(model_layer_dict3),
                  neuron_covered(model_layer_dict3, args)[2]) + bcolors.ENDC)
         averaged_nc = (neuron_covered(model_layer_dict1, args)[0] + neuron_covered(model_layer_dict2, args)[0] +

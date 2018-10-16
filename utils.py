@@ -86,12 +86,7 @@ def normalize(x):
 
 def constarint_synonym(gen, grads_value, args):
     if args.test_generation == 'basic':
-        new_grads = np.ones_like(grads_value)
-        grad_mean = np.mean(grads_value)
-        grads = grad_mean * new_grads
-
-        iterate = np.amax(grads)
-        iterate = iterate * 1000
+        iterate = np.amax(grads_value)
 
         syns = []
         i = 0
@@ -112,19 +107,13 @@ def constarint_synonym(gen, grads_value, args):
         return gen, return_type
 
     elif args.test_generation == 'dxp':
-        new_grads = np.ones_like(grads_value)
-        grad_mean = np.mean(grads_value)
-        grads = grad_mean * new_grads
-
-        iterate = np.amax(grads)
-        iterate = iterate * 1000
+        iterate = np.amax(grads_value)
 
         syns = []
         i = 0
-        j = 0
         return_type = False
 
-        while j < iterate:
+        if iterate >= 1:
             while len(syns) == 0 and i < len(gen):
                 i += 1
                 index = randint(0, len(gen) - 1)
@@ -133,10 +122,26 @@ def constarint_synonym(gen, grads_value, args):
             if len(gen) != i:
                 gen[index] = syns[0].name()
                 return_type = True
-            j += 1
 
         return gen, return_type
     elif args.test_generation == 'fgsm':
+        grad_amax = np.amax(grads_value)
+
+        iterate = np.sign(grad_amax)
+
+        syns = []
+        i = 0
+        return_type = False
+
+        if iterate > 0:
+            while len(syns) == 0 and i < len(gen):
+                i += 1
+                index = randint(0, len(gen) - 1)
+                syns = wordnet.synsets(str(gen[index]))
+
+            if len(gen) != i:
+                gen[index] = syns[0].name()
+                return_type = True
 
         return gen, return_type
 
