@@ -95,8 +95,9 @@ input_tensor = model1.input
 
 # init coverage table
 model_layer_dict1, model_layer_dict2, model_layer_dict3 = init_coverage_tables(model1, model2, model3)
+threshold_dict1, threshold_dict2, threshold_dict3 = init_neuron_threshold_tables(model1, model2, model3, test_vec_x)
 
-# ==============================================================================================
+# =====================================================================================================================
 # start gen inputs
 i = 0
 for _ in range(args.seeds):
@@ -186,8 +187,8 @@ for _ in range(args.seeds):
         if not return_type: continue
 
         raw_x[gen_index] = gen
-        temp_vec_x, test_vec_x = data_preprocess(raw_x)
-        gen_value = test_vec_x[gen_index]
+        temp_vec_x, temp_resize_vec = data_preprocess(raw_x)
+        gen_value = temp_vec_x[gen_index]
         gen_value = np.expand_dims(gen_value, axis=0)
 
         pred1, pred2, pred3 = model1.predict(gen_value), model2.predict(gen_value), model3.predict(gen_value)

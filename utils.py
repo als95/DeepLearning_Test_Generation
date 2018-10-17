@@ -147,9 +147,9 @@ def constarint_synonym(gen, grads_value, args):
 
 
 def init_coverage_tables(model1, model2, model3):
-    model_layer_dict1 = defaultdict(bool)
-    model_layer_dict2 = defaultdict(bool)
-    model_layer_dict3 = defaultdict(bool)
+    model_layer_dict1 = defaultdict(float)
+    model_layer_dict2 = defaultdict(float)
+    model_layer_dict3 = defaultdict(float)
     init_dict(model1, model_layer_dict1)
     init_dict(model2, model_layer_dict2)
     init_dict(model3, model_layer_dict3)
@@ -189,21 +189,48 @@ def neuron_covered(model_layer_dict, args):
         return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
 
 
-def init_neuron_threshold(model, model_threshold):
+def init_neuron_threshold(input_datas, model, model_threshold):
     for layer in model.layers:
         if 'input' in layer.name or 'concatenate' in layer.name:
             continue
         for index in range(layer.output_shape[-1]):
             model_threshold[(layer.name, index)] = 0
 
+    print(model_threshold)
+    layer_names = [layer.name for layer in model.layers
+                   if 'concatenate' not in layer.name and 'input' not in layer.name]
 
-def init_neuron_threshold_tables(model1, model2, model3):
+    intermediate_layer_model = Model(inputs=model.input,
+                                    outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
+    intermediate_layer_outputs = [intermediate_layer_model.predict(np.expand_dims(input_data, axis=0))
+                                  for input_data in input_datas]
+
+    for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+        for j, intermediate_neuron_outputs in enumerate(intermediate_layer_output):
+            layer_output = intermediate_neuron_outputs[0]
+
+
+    # layer_names = [layer.name for layer in model.layers if
+    #                'concatenate' not in layer.name and 'input' not in layer.name]
+    #
+    # intermediate_layer_model = Model(inputs=model.input,
+    #                                  outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
+    # intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
+    #
+    # for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+    #     scaled = scale(intermediate_layer_output[0])
+    #     for num_neuron in range(scaled.shape[-1]):
+    #         if np.mean(scaled[..., num_neuron]) > args.threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
+    #             model_layer_dict[(layer_names[i], num_neuron)] = True
+
+
+def init_neuron_threshold_tables(model1, model2, model3, input_datas):
     model_threshold1 = defaultdict(bool)
     model_threshold2 = defaultdict(bool)
     model_threshold3 = defaultdict(bool)
-    init_neuron_threshold(model1, model_threshold1)
-    init_neuron_threshold(model2, model_threshold2)
-    init_neuron_threshold(model3, model_threshold3)
+    init_neuron_threshold(input_datas, model1, model_threshold1)
+    init_neuron_threshold(input_datas, model2, model_threshold2)
+    init_neuron_threshold(input_datas, model3, model_threshold3)
     return model_threshold1, model_threshold2, model_threshold3
 
 
