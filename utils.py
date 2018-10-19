@@ -249,30 +249,38 @@ def scale(intermediate_layer_output, rmax=1, rmin=0):
     return X_scaled
 
 
-def update_coverage(input_data, model, model_layer_dict, args):
+def update_coverage(input_data, model, model_layer_dict, max_threshold_dict, min_threshold_dict, args):
+    layer_names = [layer.name for layer in model.layers if
+                   'concatenate' not in layer.name and 'input' not in layer.name
+                   and 'reshape_using' not in layer.name
+                   and 'reshape_x1' not in layer.name and 'reshape_x2' not in layer.name
+                   and 'reshape_x3' not in layer.name
+                   and 'reshape_x1_filter' not in layer.name and 'reshape_x2_filter' not in layer.name
+                   and 'reshape_x3_filter' not in layer.name]
+    intermediate_layer_model = Model(inputs=model.input,
+                                     outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
+    intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
+
     if args.coverage == 'dxp':
-        layer_names = [layer.name for layer in model.layers if
-                       'concatenate' not in layer.name and 'input' not in layer.name
-                       and 'reshape_using' not in layer.name
-                       and 'reshape_x1' not in layer.name and 'reshape_x2' not in layer.name
-                       and 'reshape_x3' not in layer.name
-                       and 'reshape_x1_filter' not in layer.name and 'reshape_x2_filter' not in layer.name
-                       and 'reshape_x3_filter' not in layer.name]
-
-        intermediate_layer_model = Model(inputs=model.input,
-                                         outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
-        intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
-
         for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
             scaled = scale(intermediate_layer_output[0])
             for num_neuron in range(scaled.shape[-1]):
                 if np.mean(scaled[..., num_neuron]) > args.threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
                     model_layer_dict[(layer_names[i], num_neuron)] = True
     elif args.coverage == 'kmnc':
+        for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+            layer_output = intermediate_layer_output[0]
+            pass
         pass
     elif args.coverage == 'nbc':
+        for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+            layer_output = intermediate_layer_output[0]
+            pass
         pass
     elif args.coverage == 'snbc':
+        for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
+            layer_output = intermediate_layer_output[0]
+            pass
         pass
 
 

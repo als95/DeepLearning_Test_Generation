@@ -95,10 +95,9 @@ input_tensor = model1.input
 
 # init coverage table
 model_layer_dict1, model_layer_dict2, model_layer_dict3 = init_coverage_tables(model1, model2, model3)
-if args.coverage != "dxp":
-    max_threshold_dict1, max_threshold_dict2, max_threshold_dict3\
-        , min_threshold_dict1, min_threshold_dict2, min_threshold_dict3 \
-        = init_neuron_threshold_tables(model1, model2, model3, test_vec_x)
+max_threshold_dict1, max_threshold_dict2, max_threshold_dict3\
+    , min_threshold_dict1, min_threshold_dict2, min_threshold_dict3 \
+    = init_neuron_threshold_tables(model1, model2, model3, test_vec_x)
 
 # =====================================================================================================================
 # start gen inputs
@@ -200,9 +199,9 @@ for _ in range(args.seeds):
         print("label1 :", label1, " label2 :", label2, " label3 :", label3)
         if not label1 == label2 == label3:
 
-            update_coverage(gen_value, model1, model_layer_dict1, args)
-            update_coverage(gen_value, model2, model_layer_dict2, args)
-            update_coverage(gen_value, model3, model_layer_dict3, args)
+            update_coverage(gen_value, model1, model_layer_dict1, max_threshold_dict1, min_threshold_dict1, args)
+            update_coverage(gen_value, model2, model_layer_dict2, max_threshold_dict2, min_threshold_dict2, args)
+            update_coverage(gen_value, model3, model_layer_dict3, max_threshold_dict3, min_threshold_dict3, args)
 
             print(bcolors.OKGREEN + 'covered neurons percentage %d neurons %.3f, %d neurons %.3f, %d neurons %.3f'
                   % (len(model_layer_dict1), neuron_covered(model_layer_dict1, args)[2], len(model_layer_dict2),
