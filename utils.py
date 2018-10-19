@@ -147,9 +147,9 @@ def constarint_synonym(gen, grads_value, args):
 
 
 def init_coverage_tables(model1, model2, model3):
-    model_layer_dict1 = defaultdict(float)
-    model_layer_dict2 = defaultdict(float)
-    model_layer_dict3 = defaultdict(float)
+    model_layer_dict1 = defaultdict(bool)
+    model_layer_dict2 = defaultdict(bool)
+    model_layer_dict3 = defaultdict(bool)
     init_dict(model1, model_layer_dict1)
     init_dict(model2, model_layer_dict2)
     init_dict(model3, model_layer_dict3)
@@ -158,7 +158,11 @@ def init_coverage_tables(model1, model2, model3):
 
 def init_dict(model, model_layer_dict):
     for layer in model.layers:
-        if 'input' in layer.name or 'concatenate' in layer.name:
+        if 'input' in layer.name or 'concatenate' in layer.name \
+                or 'reshape_using' in layer.name \
+                or 'reshape_x1' in layer.name or 'reshape_x2' in layer.name or 'reshape_x3' in layer.name \
+                or 'reshape_x1_filter' in layer.name or 'reshape_x2_filter' in layer.name \
+                or 'reshape_x3_filter' in layer.name:
             continue
         for index in range(layer.output_shape[-1]):
             model_layer_dict[(layer.name, index)] = False
@@ -189,49 +193,53 @@ def neuron_covered(model_layer_dict, args):
         return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
 
 
-def init_neuron_threshold(input_datas, model, model_threshold):
+def init_neuron_threshold(input_datas, model, model_max_threshold, model_min_threshold):
     for layer in model.layers:
-        if 'input' in layer.name or 'concatenate' in layer.name:
+        if 'input' in layer.name or 'concatenate' in layer.name \
+                or 'reshape_using' in layer.name \
+                or 'reshape_x1' in layer.name or 'reshape_x2' in layer.name or 'reshape_x3' in layer.name \
+                or 'reshape_x1_filter' in layer.name or 'reshape_x2_filter' in layer.name \
+                or 'reshape_x3_filter' in layer.name:
             continue
         for index in range(layer.output_shape[-1]):
-            model_threshold[(layer.name, index)] = 0
+            model_max_threshold[(layer.name, index)] = 0
+            model_min_threshold[(layer.name, index)] = 0
 
-    print(model_threshold)
     layer_names = [layer.name for layer in model.layers
-                   if 'concatenate' not in layer.name and 'input' not in layer.name]
+                   if 'concatenate' not in layer.name and 'input' not in layer.name
+                   and 'reshape_using' not in layer.name
+                   and 'reshape_x1' not in layer.name and 'reshape_x2' not in layer.name
+                   and 'reshape_x3' not in layer.name
+                   and 'reshape_x1_filter' not in layer.name and 'reshape_x2_filter' not in layer.name
+                   and 'reshape_x3_filter' not in layer.name]
 
     intermediate_layer_model = Model(inputs=model.input,
                                     outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
-    intermediate_layer_outputs = [intermediate_layer_model.predict(np.expand_dims(input_data, axis=0))
-                                  for input_data in input_datas]
+    for input_data in input_datas:
+        intermediate_layer_output = intermediate_layer_model.predict(np.expand_dims(input_data, axis=0))
 
-    for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
         for j, intermediate_neuron_outputs in enumerate(intermediate_layer_output):
             layer_output = intermediate_neuron_outputs[0]
-
-
-    # layer_names = [layer.name for layer in model.layers if
-    #                'concatenate' not in layer.name and 'input' not in layer.name]
-    #
-    # intermediate_layer_model = Model(inputs=model.input,
-    #                                  outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
-    # intermediate_layer_outputs = intermediate_layer_model.predict(input_data)
-    #
-    # for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
-    #     scaled = scale(intermediate_layer_output[0])
-    #     for num_neuron in range(scaled.shape[-1]):
-    #         if np.mean(scaled[..., num_neuron]) > args.threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
-    #             model_layer_dict[(layer_names[i], num_neuron)] = True
+            for num_neuron in range(layer_output.shape[-1]):
+                if np.mean(layer_output[..., num_neuron]) > model_max_threshold[(layer_names[j], num_neuron)]:
+                    model_max_threshold[(layer_names[j], num_neuron)] = np.mean(layer_output[..., num_neuron])
+                if np.mean(layer_output[..., num_neuron]) > model_min_threshold[(layer_names[j], num_neuron)]:
+                    model_min_threshold[(layer_names[j], num_neuron)] = np.mean(layer_output[..., num_neuron])
 
 
 def init_neuron_threshold_tables(model1, model2, model3, input_datas):
-    model_threshold1 = defaultdict(bool)
-    model_threshold2 = defaultdict(bool)
-    model_threshold3 = defaultdict(bool)
-    init_neuron_threshold(input_datas, model1, model_threshold1)
-    init_neuron_threshold(input_datas, model2, model_threshold2)
-    init_neuron_threshold(input_datas, model3, model_threshold3)
-    return model_threshold1, model_threshold2, model_threshold3
+    model_max_threshold1 = defaultdict(float)
+    model_max_threshold2 = defaultdict(float)
+    model_max_threshold3 = defaultdict(float)
+    model_min_threshold1 = defaultdict(float)
+    model_min_threshold2 = defaultdict(float)
+    model_min_threshold3 = defaultdict(float)
+
+    init_neuron_threshold(input_datas, model1, model_max_threshold1, model_min_threshold1)
+    init_neuron_threshold(input_datas, model2, model_max_threshold2, model_min_threshold2)
+    init_neuron_threshold(input_datas, model3, model_max_threshold3, model_min_threshold3)
+    return model_max_threshold1, model_max_threshold2, model_max_threshold3\
+        , model_min_threshold1, model_min_threshold2, model_min_threshold3
 
 
 def scale(intermediate_layer_output, rmax=1, rmin=0):
@@ -244,7 +252,12 @@ def scale(intermediate_layer_output, rmax=1, rmin=0):
 def update_coverage(input_data, model, model_layer_dict, args):
     if args.coverage == 'dxp':
         layer_names = [layer.name for layer in model.layers if
-                       'concatenate' not in layer.name and 'input' not in layer.name]
+                       'concatenate' not in layer.name and 'input' not in layer.name
+                       and 'reshape_using' not in layer.name
+                       and 'reshape_x1' not in layer.name and 'reshape_x2' not in layer.name
+                       and 'reshape_x3' not in layer.name
+                       and 'reshape_x1_filter' not in layer.name and 'reshape_x2_filter' not in layer.name
+                       and 'reshape_x3_filter' not in layer.name]
 
         intermediate_layer_model = Model(inputs=model.input,
                                          outputs=[model.get_layer(layer_name).output for layer_name in layer_names])

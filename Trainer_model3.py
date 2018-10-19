@@ -18,22 +18,22 @@ class Trainer3:
         self.max_word_size = int(max_word_size)
         self.stack = stack
         self.input = Input(shape = (self.max_word_size, self.word_dim), name='input')
-        using_x = Reshape((self.max_word_size, self.word_dim, 1))(self.input)
+        using_x = Reshape((self.max_word_size, self.word_dim, 1), name='reshape_using')(self.input)
 
         x1 = Conv2D(filter, kernel_size=[2, word_dim], activation='relu', name='block1_conv1')(using_x)
         x1 = MaxPooling2D(pool_size = [max_word_size - 1, 1], strides = 1, name='block1_pool1')(x1)
-        x1 = Reshape((1, filter))(x1)
-        self.r_result1 = Reshape(target_shape=(filter,))(x1)
+        x1 = Reshape((1, filter), name='reshape_x1')(x1)
+        self.r_result1 = Reshape(target_shape=(filter,), name='reshape_x1_filter')(x1)
 
         x2 = Conv2D(filter, kernel_size=[3, word_dim], activation='relu', name='block2_conv2')(using_x)
         x2 = MaxPooling2D(pool_size = [max_word_size - 2, 1], strides = 1, name='block2_pool2')(x2)
-        x2 = Reshape((1, filter))(x2)
-        self.r_result2 = Reshape(target_shape=(filter,))(x2)
+        x2 = Reshape((1, filter), name='reshape_x2')(x2)
+        self.r_result2 = Reshape(target_shape=(filter,), name='reshape_x2_filter')(x2)
 
         x3 = Conv2D(filter, kernel_size=[4, word_dim], activation='relu', name='block3_conv3')(using_x)
         x3 = MaxPooling2D(pool_size = [max_word_size - 3, 1], strides = 1, name='block3_pool3')(x3)
-        x3 = Reshape((1, filter))(x3)
-        self.r_result3 = Reshape(target_shape=(filter,))(x3)
+        x3 = Reshape((1, filter), name='reshape_x3')(x3)
+        self.r_result3 = Reshape(target_shape=(filter,), name='reshape_x3_filter')(x3)
 
         self.result = concatenate([self.r_result1, self.r_result2, self.r_result3], axis = 1, name='concatenate')
         self.result = Dense(units = assign_size, name='before_softmax')(self.result)

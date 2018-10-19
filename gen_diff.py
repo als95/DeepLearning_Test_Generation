@@ -95,7 +95,10 @@ input_tensor = model1.input
 
 # init coverage table
 model_layer_dict1, model_layer_dict2, model_layer_dict3 = init_coverage_tables(model1, model2, model3)
-threshold_dict1, threshold_dict2, threshold_dict3 = init_neuron_threshold_tables(model1, model2, model3, test_vec_x)
+if args.coverage != "dxp":
+    max_threshold_dict1, max_threshold_dict2, max_threshold_dict3\
+        , min_threshold_dict1, min_threshold_dict2, min_threshold_dict3 \
+        = init_neuron_threshold_tables(model1, model2, model3, test_vec_x)
 
 # =====================================================================================================================
 # start gen inputs
