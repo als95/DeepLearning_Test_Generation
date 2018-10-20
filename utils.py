@@ -177,20 +177,10 @@ def neuron_to_cover(model_layer_dict):
     return layer_name, index
 
 
-def neuron_covered(model_layer_dict, args):
-    if args.coverage == 'dxp':
-        covered_neurons = len([v for v in model_layer_dict.values() if v])
-        total_neurons = len(model_layer_dict)
-        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
-    elif args.coverage == 'kmnc':
-
-        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
-    elif args.coverage == 'nbc':
-
-        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
-    elif args.coverage == 'snbc':
-
-        return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
+def neuron_covered(model_layer_dict):
+    covered_neurons = len([v for v in model_layer_dict.values() if v])
+    total_neurons = len(model_layer_dict)
+    return covered_neurons, total_neurons, covered_neurons / float(total_neurons)
 
 
 def init_neuron_threshold(input_datas, model, model_max_threshold, model_min_threshold):
@@ -223,7 +213,7 @@ def init_neuron_threshold(input_datas, model, model_max_threshold, model_min_thr
             for num_neuron in range(layer_output.shape[-1]):
                 if np.mean(layer_output[..., num_neuron]) > model_max_threshold[(layer_names[j], num_neuron)]:
                     model_max_threshold[(layer_names[j], num_neuron)] = np.mean(layer_output[..., num_neuron])
-                if np.mean(layer_output[..., num_neuron]) > model_min_threshold[(layer_names[j], num_neuron)]:
+                if np.mean(layer_output[..., num_neuron]) < model_min_threshold[(layer_names[j], num_neuron)]:
                     model_min_threshold[(layer_names[j], num_neuron)] = np.mean(layer_output[..., num_neuron])
 
 
@@ -265,23 +255,24 @@ def update_coverage(input_data, model, model_layer_dict, max_threshold_dict, min
         for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
             scaled = scale(intermediate_layer_output[0])
             for num_neuron in range(scaled.shape[-1]):
-                if np.mean(scaled[..., num_neuron]) > args.threshold and not model_layer_dict[(layer_names[i], num_neuron)]:
+                if np.mean(scaled[..., num_neuron]) > args.threshold \
+                        and not model_layer_dict[(layer_names[i], num_neuron)]:
                     model_layer_dict[(layer_names[i], num_neuron)] = True
     elif args.coverage == 'kmnc':
         for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
             layer_output = intermediate_layer_output[0]
-            pass
-        pass
-    elif args.coverage == 'nbc':
-        for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
-            layer_output = intermediate_layer_output[0]
-            pass
-        pass
+            for num_neuron in range(layer_output.shape[-1]):
+                if np.mean(layer_output[..., num_neuron]) < max_threshold_dict[(layer_names[i], num_neuron)]\
+                    and np.mean(layer_output[..., num_neuron] > min_threshold_dict[(layer_names[i], num_neuron)])\
+                        and not model_layer_dict[(layer_names[i], num_neuron)]:
+                    model_layer_dict[(layer_names[i], num_neuron)] = True
     elif args.coverage == 'snbc':
         for i, intermediate_layer_output in enumerate(intermediate_layer_outputs):
             layer_output = intermediate_layer_output[0]
-            pass
-        pass
+            for num_neuron in range(layer_output.shape[-1]):
+                if np.mean(layer_output[..., num_neuron]) >= max_threshold_dict[(layer_names[i], num_neuron)]\
+                    and not model_layer_dict[(layer_names[i], num_neuron)]:
+                    model_layer_dict[(layer_names[i], num_neuron)] = True
 
 
 def full_coverage(model_layer_dict):
