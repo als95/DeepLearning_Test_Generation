@@ -15,13 +15,10 @@ from Model import WordPreprocessor, WordVecModeler
 import json
 
 
-def data_preprocess(raw_x):
-    word_dim = 50
+def data_preprocess(word_vec_modeler, raw_x):
     sum_vec = 1
-    word_vec_modeler = WordVecModeler(dim=word_dim)
+    word_dim = 50
     max_word = 500
-
-    word_vec_modeler.load_word_vec("word_vec_dim_50_skip_window5_nostacktrace")
     vec_x = None
     vec_size = []
     for idx, doc in enumerate(raw_x):
@@ -84,9 +81,9 @@ def normalize(x):
     return x / (K.sqrt(K.mean(K.square(x))) + 1e-5)
 
 
-def constarint_synonym(gen, grads_value, args):
+def constarint_synonym(gen, grads_value, args, word_vec_modeler):
     if args.test_generation == 'basic':
-        iterate = np.amax(grads_value)
+        iterate = np.mean(grads_value)
 
         syns = []
         i = 0
@@ -99,7 +96,7 @@ def constarint_synonym(gen, grads_value, args):
                 index = randint(0, len(gen) - 1)
                 syns = wordnet.synsets(str(gen[index]))
 
-            if len(gen) != i:
+            if len(gen) != i and len(syns) != 0:
                 gen[index] = syns[0].name()
                 return_type = True
             j += 1
@@ -107,7 +104,7 @@ def constarint_synonym(gen, grads_value, args):
         return gen, return_type
 
     elif args.test_generation == 'dxp':
-        iterate = np.amax(grads_value)
+        iterate = np.mean(grads_value)
 
         syns = []
         i = 0
@@ -125,7 +122,7 @@ def constarint_synonym(gen, grads_value, args):
 
         return gen, return_type
     elif args.test_generation == 'fgsm':
-        grad_amax = np.amax(grads_value)
+        grad_amax = np.mean(grads_value)
 
         iterate = np.sign(grad_amax)
 
@@ -158,11 +155,7 @@ def init_coverage_tables(model1, model2, model3):
 
 def init_dict(model, model_layer_dict):
     for layer in model.layers:
-        if 'input' in layer.name or 'concatenate' in layer.name \
-                or 'reshape_using' in layer.name \
-                or 'reshape_x1' in layer.name or 'reshape_x2' in layer.name or 'reshape_x3' in layer.name \
-                or 'reshape_x1_filter' in layer.name or 'reshape_x2_filter' in layer.name \
-                or 'reshape_x3_filter' in layer.name:
+        if 'input' in layer.name or 'concatenate' in layer.name:
             continue
         for index in range(layer.output_shape[-1]):
             model_layer_dict[(layer.name, index)] = False
@@ -185,23 +178,14 @@ def neuron_covered(model_layer_dict):
 
 def init_neuron_threshold(input_datas, model, model_max_threshold, model_min_threshold):
     for layer in model.layers:
-        if 'input' in layer.name or 'concatenate' in layer.name \
-                or 'reshape_using' in layer.name \
-                or 'reshape_x1' in layer.name or 'reshape_x2' in layer.name or 'reshape_x3' in layer.name \
-                or 'reshape_x1_filter' in layer.name or 'reshape_x2_filter' in layer.name \
-                or 'reshape_x3_filter' in layer.name:
+        if 'input' in layer.name or 'concatenate' in layer.name:
             continue
         for index in range(layer.output_shape[-1]):
             model_max_threshold[(layer.name, index)] = 0
             model_min_threshold[(layer.name, index)] = 0
 
     layer_names = [layer.name for layer in model.layers
-                   if 'concatenate' not in layer.name and 'input' not in layer.name
-                   and 'reshape_using' not in layer.name
-                   and 'reshape_x1' not in layer.name and 'reshape_x2' not in layer.name
-                   and 'reshape_x3' not in layer.name
-                   and 'reshape_x1_filter' not in layer.name and 'reshape_x2_filter' not in layer.name
-                   and 'reshape_x3_filter' not in layer.name]
+                   if 'concatenate' not in layer.name and 'input' not in layer.name]
 
     intermediate_layer_model = Model(inputs=model.input,
                                     outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
@@ -240,13 +224,9 @@ def scale(intermediate_layer_output, rmax=1, rmin=0):
 
 
 def update_coverage(input_data, model, model_layer_dict, max_threshold_dict, min_threshold_dict, args):
-    layer_names = [layer.name for layer in model.layers if
-                   'concatenate' not in layer.name and 'input' not in layer.name
-                   and 'reshape_using' not in layer.name
-                   and 'reshape_x1' not in layer.name and 'reshape_x2' not in layer.name
-                   and 'reshape_x3' not in layer.name
-                   and 'reshape_x1_filter' not in layer.name and 'reshape_x2_filter' not in layer.name
-                   and 'reshape_x3_filter' not in layer.name]
+    layer_names = [layer.name for layer in model.layers
+                   if 'concatenate' not in layer.name and 'input' not in layer.name]
+
     intermediate_layer_model = Model(inputs=model.input,
                                      outputs=[model.get_layer(layer_name).output for layer_name in layer_names])
     intermediate_layer_outputs = intermediate_layer_model.predict(input_data)

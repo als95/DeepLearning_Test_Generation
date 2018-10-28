@@ -45,6 +45,8 @@ sum_vec = 1
 word_preprocessor = WordPreprocessor()
 raw_x = word_preprocessor.data_preprocessing('input/desc.txt')
 assign_file = codecs.open('input/assignTo.txt', "r", "utf-8")
+word_vec_modeler = WordVecModeler(dim=word_dim)
+word_vec_modeler.load_word_vec("word_vec_dim_50_skip_window5_nostacktrace")
 TB_SUMMARY_DIR = './onlycnn/add1/filter512/234/relu'
 
 raw_y = []
@@ -62,7 +64,7 @@ enc.fit(y_to_number)
 one_hot_y = enc.transform(y_to_number).toarray()
 # assign one_hot incoding
 
-vec_x, resize_vec = data_preprocess(raw_x)
+vec_x, resize_vec = data_preprocess(word_vec_modeler, raw_x)
 train_vec_x, train_one_hot_y = data_train(vec_x, resize_vec, one_hot_y)
 test_vec_x, test_one_hot_y = data_test(vec_x, resize_vec, one_hot_y)
 
@@ -103,7 +105,7 @@ max_threshold_dict1, max_threshold_dict2, max_threshold_dict3\
 # start gen inputs
 i = 0
 for _ in range(args.seeds):
-    print(bcolors.OKBLUE + "seed %d" % i + bcolors.ENDC)
+    print(bcolors.HEADER + "seed %d" % i + bcolors.ENDC)
     i += 1
     gen_index = randint(0, len(raw_x) - 1)
     gen = raw_x[gen_index]
@@ -133,7 +135,11 @@ for _ in range(args.seeds):
                         float(neuron_covered(model_layer_dict1)[1] +
                               neuron_covered(model_layer_dict2)[1] +
                               neuron_covered(model_layer_dict3)[1])
-        print(bcolors.OKGREEN + 'averaged covered neurons %.3f' % averaged_nc + bcolors.ENDC)
+        print(bcolors.OKBLUE + 'averaged covered neurons %.3f' % averaged_nc + bcolors.ENDC)
+        max_nc = max([neuron_covered(model_layer_dict1)[2], neuron_covered(model_layer_dict2)[2],
+                      neuron_covered(model_layer_dict3)[2]])
+        print(bcolors.OKBLUE + 'max covered neurons %.3f' % max_nc + bcolors.ENDC)
+
 
         gen_deprocessed = data_deprocess(gen)
 
@@ -184,12 +190,12 @@ for _ in range(args.seeds):
         grads_value = iterate([gen_value])
 
         if args.transformation == 'synonym':
-            gen, return_type = constarint_synonym(gen, grads_value, args)
+            gen, return_type = constarint_synonym(gen, grads_value, args, word_vec_modeler)
 
         if not return_type: continue
 
         raw_x[gen_index] = gen
-        temp_vec_x, temp_resize_vec = data_preprocess(raw_x)
+        temp_vec_x, temp_resize_vec = data_preprocess(word_vec_modeler, raw_x)
         gen_value = temp_vec_x[gen_index]
         gen_value = np.expand_dims(gen_value, axis=0)
 
@@ -208,11 +214,14 @@ for _ in range(args.seeds):
                      neuron_covered(model_layer_dict2)[2], len(model_layer_dict3),
                      neuron_covered(model_layer_dict3)[2]) + bcolors.ENDC)
             averaged_nc = (neuron_covered(model_layer_dict1)[0] + neuron_covered(model_layer_dict2)[0] +
-                            neuron_covered(model_layer_dict3)[0]) / \
+                           neuron_covered(model_layer_dict3)[0]) / \
                             float(neuron_covered(model_layer_dict1)[1] +
                                   neuron_covered(model_layer_dict2)[1] +
                                   neuron_covered(model_layer_dict3)[1])
-            print(bcolors.OKGREEN + 'averaged covered neurons %.3f' % averaged_nc + bcolors.ENDC)
+            print(bcolors.OKBLUE + 'averaged covered neurons %.3f' % averaged_nc + bcolors.ENDC)
+            max_nc = max([neuron_covered(model_layer_dict1)[2], neuron_covered(model_layer_dict2)[2],
+                            neuron_covered(model_layer_dict3)[2]])
+            print(bcolors.OKBLUE + 'max covered neurons %.3f' % max_nc + bcolors.ENDC)
 
             gen_deprocessed = data_deprocess(gen)
             orig_deprocessed = data_deprocess(orig)
