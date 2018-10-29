@@ -15,9 +15,11 @@ from Model import WordPreprocessor, WordVecModeler
 import json
 
 
-def data_preprocess(word_vec_modeler, raw_x):
+def data_preprocess(raw_x):
     sum_vec = 1
     word_dim = 50
+    word_vec_modeler = WordVecModeler(dim=word_dim)
+    word_vec_modeler.load_word_vec("word_vec_dim_50_skip_window5_nostacktrace")
     max_word = 500
     vec_x = None
     vec_size = []
@@ -81,25 +83,71 @@ def normalize(x):
     return x / (K.sqrt(K.mean(K.square(x))) + 1e-5)
 
 
-def constarint_synonym(gen, grads_value, args, word_vec_modeler):
+def constraint_add(gen, grads_value, args, raw_x):
+    max_word = 1000
+    x = randint(0, len(raw_x) - 1)
+    y = randint(0, len(raw_x[x]) - 1)
     if args.test_generation == 'basic':
-        iterate = np.mean(grads_value)
+        iterate = np.amax(grads_value)
 
-        syns = []
-        i = 0
-        j = 0
         return_type = False
 
-        while j < iterate:
-            while len(syns) == 0 and i < len(gen):
-                i += 1
-                index = randint(0, len(gen) - 1)
-                syns = wordnet.synsets(str(gen[index]))
-
-            if len(gen) != i and len(syns) != 0:
-                gen[index] = syns[0].name()
-                return_type = True
+        j = 0
+        iterate += 1
+        while j < iterate and len(gen) < max_word:
+            gen.append(raw_x[x][y])
+            x = randint(0, len(raw_x) - 1)
+            y = randint(0, len(raw_x[x]) - 1)
             j += 1
+            return_type = True
+
+        pass
+    elif args.test_generation == 'dxp':
+        iterate = np.mean(grads_value)
+
+        return_type = False
+
+        if iterate >= 1 and len(gen) < max_word:
+            gen.append(raw_x[x][y])
+            return_type = True
+
+        pass
+    elif args.test_generation == 'fgsm':
+        iterate = np.mean(grads_value)
+        iterate = np.sign(iterate)
+
+        return_type = False
+
+        if iterate > 0 and len(gen) < max_word:
+            gen.append(raw_x[x][y])
+            return_type = True
+
+        pass
+
+    return gen, return_type
+
+
+def constarint_synonym(gen, grads_value, args):
+    if args.test_generation == 'basic':
+        iterate = np.amax(grads_value)
+
+        syns = []
+        k = 0
+        return_type = False
+
+        while k < len(gen) and return_type is False:
+            j = 0
+            while j < iterate:
+                i = 0
+                while len(syns) == 0 and i < len(gen):
+                    syns = wordnet.synsets(str(gen[i]))
+                    i += 1
+
+                if len(gen) != i and len(syns) != 0:
+                    gen[i] = syns[0].name()
+                    return_type = True
+                j += 1
+            k += 1
 
         return gen, return_type
 
@@ -107,18 +155,20 @@ def constarint_synonym(gen, grads_value, args, word_vec_modeler):
         iterate = np.mean(grads_value)
 
         syns = []
-        i = 0
+        k = 0
         return_type = False
 
-        if iterate >= 1:
-            while len(syns) == 0 and i < len(gen):
-                i += 1
-                index = randint(0, len(gen) - 1)
-                syns = wordnet.synsets(str(gen[index]))
+        while k < len(gen) and return_type is False:
+            i = 0
+            if iterate >= 1:
+                while len(syns) == 0 and i < len(gen):
+                    syns = wordnet.synsets(str(gen[i]))
+                    i += 1
 
-            if len(gen) != i:
-                gen[index] = syns[0].name()
-                return_type = True
+                if len(gen) != i and len(syns) != 0:
+                    gen[index] = syns[0].name()
+                    return_type = True
+            k += 1
 
         return gen, return_type
     elif args.test_generation == 'fgsm':
@@ -127,18 +177,20 @@ def constarint_synonym(gen, grads_value, args, word_vec_modeler):
         iterate = np.sign(grad_amax)
 
         syns = []
-        i = 0
+        k = 0
         return_type = False
 
-        if iterate > 0:
-            while len(syns) == 0 and i < len(gen):
-                i += 1
-                index = randint(0, len(gen) - 1)
-                syns = wordnet.synsets(str(gen[index]))
+        while k < len(gen) and return_type is False:
+            if iterate > 0:
+                i = 0
+                while len(syns) == 0 and i < len(gen):
+                    syns = wordnet.synsets(str(gen[i]))
+                    i += 1
 
-            if len(gen) != i:
-                gen[index] = syns[0].name()
-                return_type = True
+                if len(gen) != i and len(syns) != 0:
+                    gen[index] = syns[0].name()
+                    return_type = True
+            k += 1
 
         return gen, return_type
 

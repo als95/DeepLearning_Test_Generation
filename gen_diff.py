@@ -25,7 +25,7 @@ from random import *
 # argument parsing
 parser = argparse.ArgumentParser(
     description='Main function for difference-inducing input generation in ImageNet dataset')
-parser.add_argument('transformation', help="realistic transformation type", choices=['synonym'])
+parser.add_argument('transformation', help="realistic transformation type", choices=['synonym', 'add'])
 parser.add_argument('weight_diff', help="weight hyperparm to control differential behavior", default = 1, type=float)
 parser.add_argument('weight_nc', help="weight hyperparm to control neuron coverage", default = 0.1, type=float)
 parser.add_argument('step', help="step size of gradient descent", default = 10, type=float)
@@ -40,13 +40,11 @@ parser.add_argument('-t', '--target_model', help="target model that we want it p
 
 args = parser.parse_args()
 
-word_dim = 50
 sum_vec = 1
+word_dim = 50
 word_preprocessor = WordPreprocessor()
 raw_x = word_preprocessor.data_preprocessing('input/desc.txt')
 assign_file = codecs.open('input/assignTo.txt', "r", "utf-8")
-word_vec_modeler = WordVecModeler(dim=word_dim)
-word_vec_modeler.load_word_vec("word_vec_dim_50_skip_window5_nostacktrace")
 TB_SUMMARY_DIR = './onlycnn/add1/filter512/234/relu'
 
 raw_y = []
@@ -64,7 +62,7 @@ enc.fit(y_to_number)
 one_hot_y = enc.transform(y_to_number).toarray()
 # assign one_hot incoding
 
-vec_x, resize_vec = data_preprocess(word_vec_modeler, raw_x)
+vec_x, resize_vec = data_preprocess(raw_x)
 train_vec_x, train_one_hot_y = data_train(vec_x, resize_vec, one_hot_y)
 test_vec_x, test_one_hot_y = data_test(vec_x, resize_vec, one_hot_y)
 
@@ -188,14 +186,17 @@ for _ in range(args.seeds):
     # we run gradient ascent for 20 steps
     for iters in range(args.grad_iterations):
         grads_value = iterate([gen_value])
+        print(bcolors.UNDERLINE + "iters %d" % (iters+1) + bcolors.ENDC)
 
         if args.transformation == 'synonym':
-            gen, return_type = constarint_synonym(gen, grads_value, args, word_vec_modeler)
+            gen, return_type = constarint_synonym(gen, grads_value, args)
+        elif args.transformation == 'add':
+            gen, return_type = constraint_add(gen, grads_value, args, raw_x)
 
         if not return_type: continue
 
         raw_x[gen_index] = gen
-        temp_vec_x, temp_resize_vec = data_preprocess(word_vec_modeler, raw_x)
+        temp_vec_x, temp_resize_vec = data_preprocess(raw_x)
         gen_value = temp_vec_x[gen_index]
         gen_value = np.expand_dims(gen_value, axis=0)
 
