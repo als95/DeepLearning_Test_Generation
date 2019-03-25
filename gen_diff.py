@@ -63,7 +63,7 @@ y_to_number = np.array(le.transform(raw_y))
 y_to_number = np.reshape(y_to_number, [-1, 1])
 enc.fit(y_to_number)
 one_hot_y = enc.transform(y_to_number).toarray()
-# assign one_hot incoding
+# assign one_hot encoding
 
 vec_x, resize_vec = data_preprocess(raw_x, word_vec_modeler)
 train_vec_x, train_one_hot_y = data_train(vec_x, resize_vec, one_hot_y)
