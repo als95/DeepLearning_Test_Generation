@@ -24,7 +24,7 @@ import time
 # argument parsing
 parser = argparse.ArgumentParser(
     description='Main function for difference-inducing input generation in ImageNet dataset')
-parser.add_argument('transformation', help="realistic transformation type", choices=['synonym', 'add'])
+parser.add_argument('transformation', help="realistic transformation type", choices=['synonym'])
 parser.add_argument('weight_diff', help="weight hyperparm to control differential behavior", default = 1, type=float)
 parser.add_argument('weight_nc', help="weight hyperparm to control neuron coverage", default = 0.1, type=float)
 parser.add_argument('step', help="step size of gradient descent", default = 10, type=float)
@@ -103,7 +103,7 @@ max_threshold_dict1, max_threshold_dict2, max_threshold_dict3\
     = init_neuron_threshold_tables(model1, model2, model3, test_vec_x)
 
 # =====================================================================================================================
-# start gen inputs
+# start generate inputs
 
 start_time = time.time()
 
@@ -126,9 +126,9 @@ for _ in range(args.seeds):
                                                                                             str(label2),
                                                                                             str(label3)) + bcolors.ENDC)
 
-        update_coverage(gen_value, model1, model_layer_dict1, max_threshold_dict1, min_threshold_dict1, args)
-        update_coverage(gen_value, model2, model_layer_dict2, max_threshold_dict2, min_threshold_dict2, args)
-        update_coverage(gen_value, model3, model_layer_dict3, max_threshold_dict3, min_threshold_dict3, args)
+        update_coverage(gen_value, model1, model_layer_dict1, max_threshold_dict1, min_threshold_dict1, args.coverage)
+        update_coverage(gen_value, model2, model_layer_dict2, max_threshold_dict2, min_threshold_dict2, args.coverage)
+        update_coverage(gen_value, model3, model_layer_dict3, max_threshold_dict3, min_threshold_dict3, args.coverage)
 
         print(bcolors.OKGREEN + 'covered neurons percentage %d neurons %.3f, %d neurons %.3f, %d neurons %.3f'
               % (len(model_layer_dict1), neuron_covered(model_layer_dict1)[2], len(model_layer_dict2),
@@ -202,9 +202,7 @@ for _ in range(args.seeds):
         grads_value = iterate([gen_value])
 
         if args.transformation == 'synonym':
-            gen, return_type = constarint_synonym(gen, grads_value, args)
-        elif args.transformation == 'add':
-            gen, return_type = constraint_add(gen, grads_value, args, raw_x)
+            gen, return_type = constarint_synonym(gen, grads_value, args.test_generation, word_vec_modeler)
 
         if not return_type:
             iters = iters - 1
@@ -221,9 +219,9 @@ for _ in range(args.seeds):
         print("label1 :", label1, " label2 :", label2, " label3 :", label3)
         if not label1 == label2 == label3:
 
-            update_coverage(gen_value, model1, model_layer_dict1, max_threshold_dict1, min_threshold_dict1, args)
-            update_coverage(gen_value, model2, model_layer_dict2, max_threshold_dict2, min_threshold_dict2, args)
-            update_coverage(gen_value, model3, model_layer_dict3, max_threshold_dict3, min_threshold_dict3, args)
+            update_coverage(gen_value, model1, model_layer_dict1, max_threshold_dict1, min_threshold_dict1, args.coverage)
+            update_coverage(gen_value, model2, model_layer_dict2, max_threshold_dict2, min_threshold_dict2, args.coverage)
+            update_coverage(gen_value, model3, model_layer_dict3, max_threshold_dict3, min_threshold_dict3, args.coverage)
 
             print(bcolors.OKGREEN + 'covered neurons percentage %d neurons %.3f, %d neurons %.3f, %d neurons %.3f'
                   % (len(model_layer_dict1), neuron_covered(model_layer_dict1)[2], len(model_layer_dict2),
