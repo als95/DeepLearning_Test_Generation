@@ -39,6 +39,9 @@ parser.add_argument('-t', '--target_model', help="target model that we want it p
 
 args = parser.parse_args()
 
+# =====================================================================================================================
+# load 3 model and word2vec model
+
 sum_vec = 1
 word_dim = 300
 word_preprocessor = WordPreprocessor()
@@ -96,7 +99,7 @@ model3 = model3_model.model
 
 input_tensor = model1.input
 
-# init coverage table
+# init neuron coverage table
 model_layer_dict1, model_layer_dict2, model_layer_dict3 = init_coverage_tables(model1, model2, model3)
 max_threshold_dict1, max_threshold_dict2, max_threshold_dict3\
     , min_threshold_dict1, min_threshold_dict2, min_threshold_dict3 \
@@ -111,9 +114,10 @@ i = 0
 for _ in range(args.seeds):
     print(bcolors.HEADER + "seed %d" % i + bcolors.ENDC)
     i += 1
+
+    # words at bug report to vector
     gen_index = randint(0, len(raw_x) - 1)
     gen = raw_x[gen_index]
-
     gen_value = test_vec_x[gen_index]
     gen_value = np.expand_dims(gen_value, axis=0)
     orig = gen.copy()
@@ -188,29 +192,35 @@ for _ in range(args.seeds):
     loss3_neuron = K.mean(model3.get_layer(layer_name3).output[..., index3])
     layer_output = (loss1 + loss2 + loss3) + args.weight_nc * (loss1_neuron + loss2_neuron + loss3_neuron)
 
-    # for adversarial image generation
+    # for adversarial bug report generation
     final_loss = K.mean(layer_output)
 
-    # we compute the gradient of the input picture wrt this loss
+    # we compute the gradient of the bug report wrt this loss
     grads = normalize(K.gradients(final_loss, input_tensor)[0])
 
-    # this function returns the loss and grads given the input picture
+    # this function returns the loss and grads given the bug report
     iterate = K.function([input_tensor], [grads])
 
-    # we run gradient ascent for 20 steps
+    # we run gradient ascent for grad_iterations
     for iters in range(args.grad_iterations):
         grads_value = iterate([gen_value])
 
+        # =============================================================================================================
+        # start to adversarial bug report generation
         if args.transformation == 'synonym':
             gen, return_type = constarint_synonym(gen, grads_value, args.test_generation, word_vec_modeler)
 
         if not return_type:
             iters = iters - 1
+            continue
 
+        # generated bug report to vector
         raw_x[gen_index] = gen
         temp_vec_x, temp_resize_vec = data_preprocess(raw_x, word_vec_modeler)
         gen_value = temp_vec_x[gen_index]
         gen_value = np.expand_dims(gen_value, axis=0)
+
+        # =============================================================================================================
 
         pred1, pred2, pred3 = model1.predict(gen_value), model2.predict(gen_value), model3.predict(gen_value)
         label1, label2, label3 = np.argmax(pred1[0]), np.argmax(pred2[0]), np.argmax(pred3[0])
@@ -218,7 +228,6 @@ for _ in range(args.seeds):
         print(bcolors.UNDERLINE + "iters %d" % (iters + 1) + bcolors.ENDC)
         print("label1 :", label1, " label2 :", label2, " label3 :", label3)
         if not label1 == label2 == label3:
-
             update_coverage(gen_value, model1, model_layer_dict1, max_threshold_dict1, min_threshold_dict1, args.coverage)
             update_coverage(gen_value, model2, model_layer_dict2, max_threshold_dict2, min_threshold_dict2, args.coverage)
             update_coverage(gen_value, model3, model_layer_dict3, max_threshold_dict3, min_threshold_dict3, args.coverage)

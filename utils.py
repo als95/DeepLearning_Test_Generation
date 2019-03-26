@@ -362,25 +362,17 @@ def constarint_synonym(gen, grads_value, test_generation_name, word_vec_modeler)
                             max_similarity_value = similarity_value
                             max_similarity_index = syns_index
 
+                if max_similarity_value != 0 and max_similarity_value > 0.5:
+                    return_type = True
+                    gen[i] = syns_list[max_similarity_index].lemmas()[0].name()
 
-
-                while True:
-                    if len(syns_list) <= syns_index:
-                        return_type = False
-                        break
-                    syns = syns_list[syns_index].lemmas()[0].name()
-                    syns_index += 1
-                    if syns != gen[i]:
-                        return_type = True
-                        gen[i] = syns
-                        break
             syns_list = []
             i = r.randint(0, len(gen) - 1)
             j += 1
             k += 1
 
-
         return gen, return_type
+
     elif test_generation_name == 'fgsm':
         grad_mean = np.mean(grads_value)
         iterate = np.sign(grad_mean)
@@ -390,24 +382,35 @@ def constarint_synonym(gen, grads_value, test_generation_name, word_vec_modeler)
                 syns_list = wordnet.synsets(gen[i])
                 if len(syns_list) != 0:
                     break
-
                 # if vb.synonym(gen[i]):
                 #     syns_list = json.loads(vb.synonym(gen[i]))
                 #     break
                 i += 1
 
             if len(gen) > i and len(syns_list) != 0:
-                syns_index = 0
-                while True:
-                    if len(syns_list) <= syns_index:
-                        return_type = False
-                        break
+                # syns = syns_list[0]
+                # gen[i - 1] = syns['text']
+                max_similarity_value = 0
+                max_similarity_index = 0
+
+                for syns_index, _ in enumerate(syns_list):
                     syns = syns_list[syns_index].lemmas()[0].name()
-                    syns_index += 1
                     if syns != gen[i]:
-                        return_type = True
-                        gen[i] = syns
-                        break
+                        similarity = similarity_between_words(gen[i], syns, word_vec_modeler)
+                        if similarity is False:
+                            continue
+                        similarity_value = similarity[0][0]
+                        if similarity_value < 0.5:
+                            continue
+
+                        if similarity_value > max_similarity_value:
+                            max_similarity_value = similarity_value
+                            max_similarity_index = syns_index
+
+                if max_similarity_value != 0 and max_similarity_value > 0.5:
+                    return_type = True
+                    gen[i] = syns_list[max_similarity_index].lemmas()[0].name()
+
             syns_list = []
             i = r.randint(0, len(gen) - 1)
             j += 1
