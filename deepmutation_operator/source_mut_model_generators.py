@@ -2,21 +2,17 @@ import os
 
 import utils
 import source_mut_operators
-import network
+import network_triage
 import tensorflow as tf
 
 
 class SourceMutatedModelGenerators():
 
-    def __init__(self, model_architecture='FC'):
+    def __init__(self):
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         self.utils = utils.GeneralUtils()
-        self.model_architecture = model_architecture
-        if self.model_architecture == 'CNN':
-            self.network = network.CNNNetwork()
-        else:
-            self.network = network.FCNetwork()
-        
+
+        self.network = network_triage.TriageNetwork()
         self.source_mut_opts = source_mut_operators.SourceMutationOperators()
     
 
@@ -26,10 +22,7 @@ class SourceMutatedModelGenerators():
         # Model creation
         # This should variates according to the value of self.model_architecture
         train_dataset, test_dataset = self.network.load_data()
-        if self.model_architecture == 'CNN':
-            model = self.network.create_CNN_model_1()
-        else: 
-            model = self.network.create_normal_FC_model()
+        model = self.network.create_model()
 
         # Test for generate_model_by_source_mutation function 
         for mode in modes:
@@ -47,7 +40,6 @@ class SourceMutatedModelGenerators():
         mutation_ratio = 0.9
         suffix = '_model'
         name_of_saved_file = mode + suffix
-        with_checkpoint = False
         mutated_layer_indices = None
 
 
@@ -75,13 +67,14 @@ class SourceMutatedModelGenerators():
             pass 
 
         mutated_model = self.network.compile_model(mutated_model)
-        trained_mutated_model = self.network.train_model(mutated_model, mutated_datas, mutated_labels, with_checkpoint=with_checkpoint)
+        test_datas, test_labels = test_dataset
+        trained_mutated_model = self.network.train_model(mutated_model, mutated_datas, mutated_labels, test_datas, test_labels)
             
         if verbose:
             # Extract unmutated model and dataset for comparision
             train_datas, train_labels = train_dataset
             model = self.network.compile_model(model)
-            trained_model = self.network.train_model(model, train_datas, train_labels, with_checkpoint=with_checkpoint)
+            trained_model = self.network.train_model(model, train_datas, train_labels, test_datas, test_labels)
 
             self.utils.print_messages_SMO(mode, train_datas=train_datas, train_labels=train_labels, mutated_datas=mutated_datas, mutated_labels=mutated_labels, model=trained_model, mutated_model=trained_mutated_model, mutation_ratio=mutation_ratio)
         

@@ -214,7 +214,7 @@ class SourceMutationOperators():
         new_model = keras.models.Sequential()
         layers = [l for l in deep_copied_model.layers]
 
-        if mutated_layer_indices == None:
+        if mutated_layer_indices is None:
             random_picked_spot_index = index_of_suitable_spots[random.randint(0, number_of_suitable_spots-1)]
             print('Selected layer by LAs mutation operator', random_picked_spot_index)
 
@@ -256,7 +256,7 @@ class SourceMutationOperators():
         new_model = keras.models.Sequential()
         layers = [l for l in deep_copied_model.layers]
 
-        if mutated_layer_indices == None:
+        if mutated_layer_indices is None:
             random_picked_layer_index = index_of_suitable_layers[random.randint(0, number_of_suitable_layers-1)]
             print('Seleced layer by AFRs mutation operator', random_picked_layer_index)
 

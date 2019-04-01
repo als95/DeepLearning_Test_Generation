@@ -1,7 +1,7 @@
 import os
 
 import source_mut_operators
-import utils, network, model_mut_operators
+import utils, network_triage, model_mut_operators
 
 import keras 
 
@@ -12,11 +12,7 @@ class ModelMutatedModelGenerators():
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         self.utils = utils.GeneralUtils()
         self.model_utils = utils.ModelUtils()
-        self.model_architecture = model_architecture
-        if self.model_architecture == 'CNN':
-            self.network = network.CNNNetwork()
-        else:
-            self.network = network.FCNetwork()
+        self.network = network_triage.TriageNetwork()
         
         self.model_mut_opts = model_mut_operators.ModelMutationOperators()
         (_, _), (test_datas, test_results) = self.network.load_data()
@@ -31,10 +27,7 @@ class ModelMutatedModelGenerators():
         modes = ['GF', 'WS', 'NEB', 'NAI', 'NS', 'LD', 'LAm', 'AFRm']
         # modes = ['LD']
 
-        if self.model_architecture == 'CNN':        
-            model = self.network.load_model('CNN_model2')
-        else:
-            model = self.network.load_model('normal_FC_model')
+        model = self.network.load_model('triage_model')
 
         for mode in modes:
             name_of_saved_file = mode + '_model'

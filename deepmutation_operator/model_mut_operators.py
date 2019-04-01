@@ -25,7 +25,7 @@ class ModelMutationOperatorsUtils():
         elif prob_distribution == 'exponential':
             assert lam is not 0
             scale = 1 / lam 
-            copy_lst[permutation] += np.random.exponential(scale=sclae, size=len(permutation))
+            copy_lst[permutation] += np.random.exponential(scale=scale, size=len(permutation))
         else:
             pass
 

@@ -26,12 +26,12 @@ utils = utils.GeneralUtils()
 
 # Prepare training dataset and untrained model for source-level mutation
 # Users can their our own dataset and model
-import network
-network = network.FCNetwork()
+import network_triage
+network = network_triage.TriageNetwork()
 
 # model is a simple FC(fully-connected) neural network
 # dataset is a subset from MNIST dataset with 5000 training data and 1000 testing data
-model = network.create_normal_FC_model()
+model = network.create_model()
 (train_datas, train_labels), (test_datas, test_labels) = network.load_data()
 
 print('train_datas shape:', train_datas.shape)
