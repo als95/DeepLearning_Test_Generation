@@ -54,8 +54,7 @@ for mutation_ratio in mutation_ratios:
 # LE (Label Error), see https://github.com/KuoTzu-yang/DeepMutation for more explanation
 mutation_ratios = [0.01, 0.1, 0.5]
 for mutation_ratio in mutation_ratios:
-    (LE_train_datas, LE_train_labels), LE_model = source_mut_opts.LE_mut((train_datas, train_labels), model, 0, 9,
-                                                                         mutation_ratio)
+    (LE_train_datas, LE_train_labels), LE_model = source_mut_opts.LE_mut((train_datas, train_labels), model, 0, 9, mutation_ratio)
 
     mask_equal = LE_train_labels == train_labels
     mask_equal = np.sum(mask_equal, axis=1) == 10
