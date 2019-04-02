@@ -1,6 +1,11 @@
 import tensorflow as tf
 import numpy as np
 import keras
+from keras import backend as K
+from keras import optimizers
+from keras.models import Model
+from keras.objectives import categorical_crossentropy
+from keras.layers import Conv2D, MaxPooling2D, concatenate, Dense, Activation, Input, Reshape
 
 from w2v_model import WordPreprocessor, WordVecModeler
 from sklearn import preprocessing
@@ -13,8 +18,9 @@ class TriageNetwork:
         self.max_word_size = 500
         self.stack = 2
         self.sum_vec = 1
+        self.filter = 128
         self.word_preprocessor = WordPreprocessor()
-        self.raw_data = word_preprocessor.data_preprocessing('input/desc.txt')
+        self.raw_data = self.word_preprocessor.data_preprocessing('input/desc.txt')
         self.word_vec_modeler = WordVecModeler(dim=self.word_dim)
         self.word_vec_modeler.load_word_vec("GoogleNews-vectors-negative300.bin")
         self.assign_size = 0
@@ -49,7 +55,7 @@ class TriageNetwork:
         for idx, doc in enumerate(vec):
             temp_doc_vec = np.zeros((self.max_word_size // self.sum_vec, self.word_dim))
             for i in range(self.max_word_size // self.sum_vec):
-                temp_vec = np.zeros(word_dim)
+                temp_vec = np.zeros(self.word_dim)
                 for j in range(self.sum_vec):
                     temp_vec = temp_vec + doc[i * self.sum_vec + j]
                 temp_doc_vec[i] = temp_vec
@@ -72,8 +78,8 @@ class TriageNetwork:
         enc.fit(label_to_number)
         labels = enc.transform(label_to_number).toarray()
 
-        train_datas = resize_vec[:int(len(vec_x) * (1 - test_percent))]
-        test_datas = resize_vec[int(len(vec_x) * (1 - test_percent)):]
+        train_datas = resize_vec[:int(len(vec) * (1 - test_percent))]
+        test_datas = resize_vec[int(len(vec) * (1 - test_percent)):]
         train_labels = labels[:int(len(labels) * (1 - test_percent))]
         test_labels = labels[int(len(labels) * (1 - test_percent)):]
 
@@ -84,26 +90,26 @@ class TriageNetwork:
         return keras.models.load_model(file_name)
 
     def create_model(self):
-        input = Input(shape=(self.max_word_size, self.word_dim), name='input')
-        using_x = Reshape((self.max_word_size, self.word_dim, 1), name='reshape_using')(input)
+        input = Input(shape=(self.max_word_size, self.word_dim))
+        using_x = Reshape((self.max_word_size, self.word_dim, 1))(input)
 
-        x1 = Conv2D(filter, kernel_size=[2, self.word_dim], activation='relu', name='block1_conv1')(using_x)
-        x1 = MaxPooling2D(pool_size=[self.max_word_size - 1, 1], strides=1, name='block1_pool1')(x1)
-        x1 = Reshape((1, filter), name='reshape_x1')(x1)
-        r_result1 = Reshape(target_shape=(filter,), name='reshape_x1_filter')(x1)
+        x1 = Conv2D(self.filter, kernel_size=[2, self.word_dim], activation='relu')(using_x)
+        x1 = MaxPooling2D(pool_size=[self.max_word_size - 1, 1], strides=1)(x1)
+        x1 = Reshape((1, self.filter))(x1)
+        r_result1 = Reshape(target_shape=(self.filter,))(x1)
 
-        x2 = Conv2D(filter, kernel_size=[3, self.word_dim], activation='relu', name='block2_conv2')(using_x)
-        x2 = MaxPooling2D(pool_size=[self.max_word_size - 2, 1], strides=1, name='block2_pool2')(x2)
-        x2 = Reshape((1, filter), name='reshape_x2')(x2)
-        r_result2 = Reshape(target_shape=(filter,), name='reshape_x2_filter')(x2)
+        x2 = Conv2D(self.filter, kernel_size=[3, self.word_dim], activation='relu')(using_x)
+        x2 = MaxPooling2D(pool_size=[self.max_word_size - 2, 1], strides=1)(x2)
+        x2 = Reshape((1, self.filter))(x2)
+        r_result2 = Reshape(target_shape=(self.filter,))(x2)
 
-        x3 = Conv2D(filter, kernel_size=[4, self.word_dim], activation='relu', name='block3_conv3')(using_x)
-        x3 = MaxPooling2D(pool_size=[self.max_word_size - 3, 1], strides=1, name='block3_pool3')(x3)
-        x3 = Reshape((1, filter), name='reshape_x3')(x3)
-        r_result3 = Reshape(target_shape=(filter,), name='reshape_x3_filter')(x3)
+        x3 = Conv2D(self.filter, kernel_size=[4, self.word_dim], activation='relu')(using_x)
+        x3 = MaxPooling2D(pool_size=[self.max_word_size - 3, 1], strides=1)(x3)
+        x3 = Reshape((1, self.filter))(x3)
+        r_result3 = Reshape(target_shape=(self.filter,))(x3)
 
-        result = concatenate([r_result1, r_result2, r_result3], axis=1, name='concatenate')
-        result = Dense(units=self.assign_size, name='before_softmax')(result)
+        result = concatenate([r_result1, r_result2, r_result3], axis=1)
+        result = Dense(units=self.assign_size)(result)
         result = Activation('softmax', name='predictions')(result)
 
         model = Model(inputs=input, outputs=result)

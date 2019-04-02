@@ -44,7 +44,7 @@ class SourceMutatedModelGenerators():
 
 
         lower_bound = 0
-        upper_bound = 9
+        upper_bound = 16
         STD = 100
 
         if mode == 'DR':

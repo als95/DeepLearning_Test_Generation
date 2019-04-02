@@ -23,7 +23,7 @@ class SourceMutationOperatorsUtils():
         for index, layer in enumerate(layers):
             layer_name = type(layer).__name__
             is_in_candidates = layer_name in self.LR_mut_candidates
-            has_same_input_output_shape = layer.input.shape.as_list() == layer.output.shape.as_list()
+            has_same_input_output_shape = list(np.shape(layer.input)) == list(np.shape(layer.output))
             should_be_removed = is_in_candidates and has_same_input_output_shape
 
             if index == 0 or index == (len(model.layers) - 1):
@@ -99,6 +99,7 @@ class SourceMutationOperators():
                 val = random.randint(label_lower_bound, label_upper_bound)
                 num_of_classes = label_upper_bound - label_lower_bound + 1
                 val = keras.utils.np_utils.to_categorical(val, num_of_classes)
+
                 if np.array_equal(LE_train_labels[new_index], val):
                     continue
                 else: 
@@ -177,12 +178,13 @@ class SourceMutationOperators():
         new_model = keras.models.Sequential()
         layers = [l for l in deep_copied_model.layers]
 
-
         if mutated_layer_indices == None:
-            random_picked_layer_index = index_of_suitable_layers[random.randint(0, number_of_suitable_layers-1)]
+            random_picked_layer_index = index_of_suitable_layers[random.randint(1, number_of_suitable_layers-1)]
             print('Selected layer by LR mutation operator', random_picked_layer_index)
             
             for index, layer in enumerate(layers):
+                if index == 0:
+                    continue
                 if index == random_picked_layer_index:
                     continue
                 new_model.add(layer)
@@ -190,6 +192,8 @@ class SourceMutationOperators():
             self.check.in_suitable_indices_check(index_of_suitable_layers, mutated_layer_indices)
 
             for index, layer in enumerate(layers):
+                if index == 0:
+                    continue
                 if index in mutated_layer_indices:
                     continue
                 new_model.add(layer)
@@ -215,10 +219,12 @@ class SourceMutationOperators():
         layers = [l for l in deep_copied_model.layers]
 
         if mutated_layer_indices is None:
-            random_picked_spot_index = index_of_suitable_spots[random.randint(0, number_of_suitable_spots-1)]
+            random_picked_spot_index = index_of_suitable_spots[random.randint(1, number_of_suitable_spots-1)]
             print('Selected layer by LAs mutation operator', random_picked_spot_index)
 
             for index, layer in enumerate(layers):
+                if index == 0:
+                    continue
 
                 if index == random_picked_spot_index:
                     new_model.add(layer)
@@ -234,7 +240,6 @@ class SourceMutationOperators():
                     new_model.add(self.SMO_utils.LA_get_random_layer())
                     continue
                 new_model.add(layer)
-
 
         return (copied_train_datas, copied_train_labels), new_model
 
@@ -257,10 +262,12 @@ class SourceMutationOperators():
         layers = [l for l in deep_copied_model.layers]
 
         if mutated_layer_indices is None:
-            random_picked_layer_index = index_of_suitable_layers[random.randint(0, number_of_suitable_layers-1)]
+            random_picked_layer_index = index_of_suitable_layers[random.randint(1, number_of_suitable_layers-1)]
             print('Seleced layer by AFRs mutation operator', random_picked_layer_index)
 
             for index, layer in enumerate(layers):
+                if index == 0:
+                    continue
                 if index == random_picked_layer_index:
                     layer.activation = lambda x: x
                     new_model.add(layer)
@@ -269,6 +276,8 @@ class SourceMutationOperators():
         else:
             self.check.in_suitable_indices_check(index_of_suitable_layers, mutated_layer_indices)
             for index, layer in enumerate(layers):
+                if index == 0:
+                    continue
                 if index in mutated_layer_indices:
                     layer.activation = lambda x: x
                     new_model.add(layer)
