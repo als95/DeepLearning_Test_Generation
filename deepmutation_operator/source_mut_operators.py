@@ -99,7 +99,6 @@ class SourceMutationOperators():
                 val = random.randint(label_lower_bound, label_upper_bound)
                 num_of_classes = label_upper_bound - label_lower_bound + 1
                 val = keras.utils.np_utils.to_categorical(val, num_of_classes)
-
                 if np.array_equal(LE_train_labels[new_index], val):
                     continue
                 else: 
