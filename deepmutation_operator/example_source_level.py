@@ -75,7 +75,7 @@ for mutation_ratio in mutation_ratios:
 
 '''
 For DF, it's a little difficult to explicitly demonstrate
-a large amount of data samples be shuffled. 
+a large amount of data samples be shuffled.
 Here, we simply illustrate how to use DF mutation operator.
 '''
 # DF (Data Shuffle), see https://github.com/KuoTzu-yang/DeepMutation for more explanation
@@ -106,7 +106,6 @@ LR_model.summary()
 # LAs (Layer Addition for source-level mutation), see https://github.com/KuoTzu-yang/DeepMutation for more explanation
 (LAs_train_datas, LAs_train_labels), LAs_model = source_mut_opts.LAs_mut((train_datas, train_labels), model)
 LAs_model.summary()
-# -> need to train model
 
 '''
 For AFRs, it's a little difficult to explicitly demonstrate
@@ -114,3 +113,4 @@ Here, we simply illustrate how to use AFRs mutation operator.
 '''
 # AFRs (Activation Function Removal for source-level mutation), see https://github.com/KuoTzu-yang/DeepMutation for more explanation
 (AFRs_train_datas, AFRs_train_labels), AFRs_model = source_mut_opts.AFRs_mut((train_datas, train_labels), model)
+AFRs_model.summary()

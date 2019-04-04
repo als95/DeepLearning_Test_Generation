@@ -6,7 +6,7 @@ import network_triage
 import tensorflow as tf
 
 
-class SourceMutatedModelGenerators():
+class SourceMutatedModelGenerators:
 
     def __init__(self):
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -26,7 +26,6 @@ class SourceMutatedModelGenerators():
 
         # Test for generate_model_by_source_mutation function 
         for mode in modes:
-            name_of_saved_file = mode + '_model'
             self.generate_model_by_source_mutation(train_dataset, test_dataset, model, mode, verbose=verbose)
 
 

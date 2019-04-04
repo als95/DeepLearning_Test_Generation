@@ -6,16 +6,22 @@ import random
 import math
 import utils
 
+from keras.layers import Input
+from keras.models import Model
+
 class SourceMutationOperatorsUtils():
 
     def __init__(self):
         self.LR_mut_candidates = ['Dense', 'BatchNormalization']
         self.LA_mut_candidates = [keras.layers.ReLU(), keras.layers.BatchNormalization()]
 
-    def LA_get_random_layer(self):
+    def LA_get_random_layer(self, input_shape):
         num_of_LA_candidates = len(self.LA_mut_candidates)
         random_index = random.randint(0, num_of_LA_candidates - 1)
-        return self.LA_mut_candidates[random_index]
+        if random_index == 0:
+            return keras.layers.ReLU()
+        else:
+            return keras.layers.BatchNormalization(input_shape=input_shape)
 
     def LR_model_scan(self, model):
         index_of_suitable_layers = []
@@ -64,6 +70,10 @@ class SourceMutationOperators():
         self.check = utils.ExaminationalUtils()
         self.model_utils = utils.ModelUtils()
         self.SMO_utils = SourceMutationOperatorsUtils()
+        self.word_dim = 300
+        self.max_word_size = 500
+        self.filter = 128
+        self.assign_size = 17
 
     def DR_mut(self, train_dataset, model, mutation_ratio):
         deep_copied_model = self.model_utils.model_copy(model, 'DR')
@@ -99,7 +109,6 @@ class SourceMutationOperators():
                 val = random.randint(label_lower_bound, label_upper_bound)
                 num_of_classes = label_upper_bound - label_lower_bound + 1
                 val = keras.utils.np_utils.to_categorical(val, num_of_classes)
-
                 if np.array_equal(LE_train_labels[new_index], val):
                     continue
                 else: 
@@ -175,28 +184,59 @@ class SourceMutationOperators():
             print('However, there is no suitable layer for the input model')
             return (copied_train_datas, copied_train_labels), deep_copied_model
 
-        new_model = keras.models.Sequential()
         layers = [l for l in deep_copied_model.layers]
 
+        new_input = Input(shape=(self.max_word_size, self.word_dim))
+        prev_layer = new_input
+        prev_layer = layers[1](prev_layer)
+        conv_layer1 = layers[2](prev_layer)
+        conv_layer2 = layers[3](prev_layer)
+        conv_layer3 = layers[4](prev_layer)
+
         if mutated_layer_indices == None:
-            random_picked_layer_index = index_of_suitable_layers[random.randint(1, number_of_suitable_layers-1)]
+            random_picked_layer_index = index_of_suitable_layers[random.randint(0, number_of_suitable_layers-1)]
             print('Selected layer by LR mutation operator', random_picked_layer_index)
-            
+
             for index, layer in enumerate(layers):
-                if index == 0:
+                if 0 <= index <= 4:
                     continue
+
                 if index == random_picked_layer_index:
                     continue
-                new_model.add(layer)
+
+                if index == 14:
+                    prev_layer = layer([conv_layer1, conv_layer2, conv_layer3])
+                elif index > 14:
+                    prev_layer = layer(prev_layer)
+                elif index % 3 == 2:
+                    conv_layer1 = layer(conv_layer1)
+                elif index % 3 == 0:
+                    conv_layer2 = layer(conv_layer2)
+                elif index % 3 == 1:
+                    conv_layer3 = layer(conv_layer3)
+
         else:
             self.check.in_suitable_indices_check(index_of_suitable_layers, mutated_layer_indices)
 
             for index, layer in enumerate(layers):
-                if index == 0:
-                    continue
                 if index in mutated_layer_indices:
                     continue
-                new_model.add(layer)
+
+                if 0 <= index <= 4:
+                    continue
+
+                if index == 14:
+                    prev_layer = layer([conv_layer1, conv_layer2, conv_layer3])
+                elif index > 14:
+                    prev_layer = layer(prev_layer)
+                elif index % 3 == 2:
+                    conv_layer1 = layer(conv_layer1)
+                elif index % 3 == 0:
+                    conv_layer2 = layer(conv_layer2)
+                elif index % 3 == 1:
+                    conv_layer3 = layer(conv_layer3)
+
+        new_model = Model([new_input], [prev_layer])
 
         return (copied_train_datas, copied_train_labels), new_model
 
@@ -215,31 +255,71 @@ class SourceMutationOperators():
             print('There is no suitable spot for the input model')
             return (copied_train_datas, copied_train_labels), deep_copied_model
 
-        new_model = keras.models.Sequential()
         layers = [l for l in deep_copied_model.layers]
 
+        new_input = Input(shape = (self.max_word_size, self.word_dim))
+        prev_layer = new_input
+        prev_layer = layers[1](prev_layer)
+        conv_layer1 = layers[2](prev_layer)
+        conv_layer2 = layers[3](prev_layer)
+        conv_layer3 = layers[4](prev_layer)
+
         if mutated_layer_indices is None:
-            random_picked_spot_index = index_of_suitable_spots[random.randint(1, number_of_suitable_spots-1)]
+            random_picked_spot_index = index_of_suitable_spots[random.randint(2, number_of_suitable_spots-1)]
             print('Selected layer by LAs mutation operator', random_picked_spot_index)
 
             for index, layer in enumerate(layers):
-                if index == 0:
+                if 0 <= index <= 4:
                     continue
 
-                if index == random_picked_spot_index:
-                    new_model.add(layer)
-                    new_model.add(self.SMO_utils.LA_get_random_layer())
-                    continue
-                new_model.add(layer)
+                if index == 14:
+                    prev_layer = layer([conv_layer1, conv_layer2, conv_layer3])
+                elif index > 14:
+                    prev_layer = layer(prev_layer)
+                elif index % 3 == 2:
+                    conv_layer1 = layer(conv_layer1)
+                elif index % 3 == 0:
+                    conv_layer2 = layer(conv_layer2)
+                elif index % 3 == 1:
+                    conv_layer3 = layer(conv_layer3)
+
+                if random_picked_spot_index >= 14:
+                    prev_layer = self.SMO_utils.LA_get_random_layer(prev_layer.shape)(prev_layer)
+                elif random_picked_spot_index % 3 == 2:
+                    conv_layer1 = self.SMO_utils.LA_get_random_layer(conv_layer1.shape)(conv_layer1)
+                elif random_picked_spot_index % 3 == 0:
+                    conv_layer2 = self.SMO_utils.LA_get_random_layer(conv_layer2.shape)(conv_layer2)
+                elif random_picked_spot_index % 3 == 1:
+                    conv_layer3 = self.SMO_utils.LA_get_random_layer(conv_layer3.shape)(conv_layer3)
+
         else:
             self.check.in_suitable_indices_check(index_of_suitable_spots, mutated_layer_indices)
 
             for index, layer in enumerate(layers):
-                if index in mutated_layer_indices:
-                    new_model.add(layer)
-                    new_model.add(self.SMO_utils.LA_get_random_layer())
+                if 0 <= index <= 4:
                     continue
-                new_model.add(layer)
+
+                if index == 14:
+                    prev_layer = layer([conv_layer1, conv_layer2, conv_layer3])
+                elif index > 14:
+                    prev_layer = layer(prev_layer)
+                elif index % 3 == 2:
+                    conv_layer1 = layer(conv_layer1)
+                elif index % 3 == 0:
+                    conv_layer2 = layer(conv_layer2)
+                elif index % 3 == 1:
+                    conv_layer3 = layer(conv_layer3)
+
+                if random_picked_spot_index >= 14:
+                    prev_layer = self.SMO_utils.LA_get_random_layer(prev_layer.shape)(prev_layer)
+                elif random_picked_spot_index % 3 == 2:
+                    conv_layer1 = self.SMO_utils.LA_get_random_layer(conv_layer1.shape)(conv_layer1)
+                elif random_picked_spot_index % 3 == 0:
+                    conv_layer2 = self.SMO_utils.LA_get_random_layer(conv_layer2.shape)(conv_layer2)
+                elif random_picked_spot_index % 3 == 1:
+                    conv_layer3 = self.SMO_utils.LA_get_random_layer(conv_layer3.shape)(conv_layer3)
+
+        new_model = Model([new_input], [prev_layer])
 
         return (copied_train_datas, copied_train_labels), new_model
 
@@ -257,31 +337,59 @@ class SourceMutationOperators():
             print('None activation of layers be removed')
             print('There is no suitable layer for the input model')
             return (copied_train_datas, copied_train_labels), deep_copied_model
-        
-        new_model = keras.models.Sequential()
+
         layers = [l for l in deep_copied_model.layers]
 
+        new_input = Input(shape=(self.max_word_size, self.word_dim))
+        prev_layer = new_input
+        prev_layer = layers[1](prev_layer)
+        conv_layer1 = layers[2](prev_layer)
+        conv_layer2 = layers[3](prev_layer)
+        conv_layer3 = layers[4](prev_layer)
+
         if mutated_layer_indices is None:
-            random_picked_layer_index = index_of_suitable_layers[random.randint(1, number_of_suitable_layers-1)]
-            print('Seleced layer by AFRs mutation operator', random_picked_layer_index)
+            random_picked_layer_index = index_of_suitable_layers[random.randint(2, number_of_suitable_layers-1)]
+            print('Seleced layer by AFRs mpatation operator', random_picked_layer_index)
 
             for index, layer in enumerate(layers):
-                if index == 0:
-                    continue
                 if index == random_picked_layer_index:
                     layer.activation = lambda x: x
-                    new_model.add(layer)
                     continue
-                new_model.add(layer)
+
+                if 0 <= index <= 4:
+                    continue
+
+                if index == 14:
+                    prev_layer = layer([conv_layer1, conv_layer2, conv_layer3])
+                elif index > 14:
+                    prev_layer = layer(prev_layer)
+                elif index % 3 == 2:
+                    conv_layer1 = layer(conv_layer1)
+                elif index % 3 == 0:
+                    conv_layer2 = layer(conv_layer2)
+                elif index % 3 == 1:
+                    conv_layer3 = layer(conv_layer3)
         else:
             self.check.in_suitable_indices_check(index_of_suitable_layers, mutated_layer_indices)
             for index, layer in enumerate(layers):
-                if index == 0:
-                    continue
                 if index in mutated_layer_indices:
                     layer.activation = lambda x: x
-                    new_model.add(layer)
                     continue
-                new_model.add(layer)
+
+                if 0 <= index <= 4:
+                    continue
+
+                if index == 14:
+                    prev_layer = layer([conv_layer1, conv_layer2, conv_layer3])
+                elif index > 14:
+                    prev_layer = layer(prev_layer)
+                elif index % 3 == 2:
+                    conv_layer1 = layer(conv_layer1)
+                elif index % 3 == 0:
+                    conv_layer2 = layer(conv_layer2)
+                elif index % 3 == 1:
+                    conv_layer3 = layer(conv_layer3)
+
+        new_model = Model([new_input], [prev_layer])
 
         return (copied_train_datas, copied_train_labels), new_model
