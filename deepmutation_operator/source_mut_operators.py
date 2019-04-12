@@ -65,18 +65,19 @@ class SourceMutationOperatorsUtils():
 
 class SourceMutationOperators():
 
-    def __init__(self):
+    def __init__(self, network):
         self.utils = utils.GeneralUtils()
         self.check = utils.ExaminationalUtils()
         self.model_utils = utils.ModelUtils()
         self.SMO_utils = SourceMutationOperatorsUtils()
         self.word_dim = 300
         self.max_word_size = 500
-        self.filter = 128
+        self.filter = 512
         self.assign_size = 17
+        self.network = network
 
     def DR_mut(self, train_dataset, model, mutation_ratio):
-        deep_copied_model = self.model_utils.model_copy(model, 'DR')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'DR')
         train_datas, train_labels = train_dataset
         self.check.mutation_ratio_range_check(mutation_ratio)   
         self.check.training_dataset_consistent_length_check(train_datas, train_labels)     
@@ -94,7 +95,7 @@ class SourceMutationOperators():
         return (repeated_train_datas, repeated_train_labels), deep_copied_model
 
     def LE_mut(self, train_dataset, model, label_lower_bound, label_upper_bound, mutation_ratio):
-        deep_copied_model = self.model_utils.model_copy(model, 'LE')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'LE')
         train_datas, train_labels = train_dataset
         LE_train_datas, LE_train_labels = train_datas.copy(), train_labels.copy()
         self.check.mutation_ratio_range_check(mutation_ratio)   
@@ -117,7 +118,7 @@ class SourceMutationOperators():
         return (LE_train_datas, LE_train_labels), deep_copied_model
 
     def DM_mut(self, train_dataset, model, mutation_ratio):
-        deep_copied_model = self.model_utils.model_copy(model, 'DM')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'DM')
         train_datas, train_labels = train_dataset
         DM_train_datas, DM_train_labels = train_datas.copy(), train_labels.copy()
         self.check.mutation_ratio_range_check(mutation_ratio)   
@@ -134,7 +135,7 @@ class SourceMutationOperators():
         return (DM_train_datas, DM_train_labels), deep_copied_model
 
     def DF_mut(self, train_dataset, model, mutation_ratio):
-        deep_copied_model = self.model_utils.model_copy(model, 'DF')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'DF')
         train_datas, train_labels = train_dataset
         DF_train_datas, DF_train_labels = train_datas.copy(), train_labels.copy()
         self.check.mutation_ratio_range_check(mutation_ratio)   
@@ -150,7 +151,7 @@ class SourceMutationOperators():
         return (DF_train_datas, DF_train_labels), deep_copied_model
 
     def NP_mut(self, train_dataset, model, mutation_ratio, STD=0.1):
-        deep_copied_model = self.model_utils.model_copy(model, 'NP')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'NP')
         train_datas, train_labels = train_dataset
         NP_train_datas, NP_train_labels = train_datas.copy(), train_labels.copy()
         self.check.mutation_ratio_range_check(mutation_ratio)   
@@ -170,7 +171,7 @@ class SourceMutationOperators():
     
     def LR_mut(self, train_dataset, model, mutated_layer_indices=None):
         # Copying and some assertions
-        deep_copied_model = self.model_utils.model_copy(model, 'LR')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'LR')
         train_datas, train_labels = train_dataset
         copied_train_datas, copied_train_labels = train_datas.copy(), train_labels.copy()
         self.check.training_dataset_consistent_length_check(copied_train_datas, copied_train_labels)
@@ -242,7 +243,7 @@ class SourceMutationOperators():
 
     def LAs_mut(self, train_dataset, model, mutated_layer_indices=None):
         # Copying and some assertions
-        deep_copied_model = self.model_utils.model_copy(model, 'LAs')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'LAs')
         train_datas, train_labels = train_dataset
         copied_train_datas, copied_train_labels = train_datas.copy(), train_labels.copy()
         self.check.training_dataset_consistent_length_check(copied_train_datas, copied_train_labels)
@@ -265,7 +266,7 @@ class SourceMutationOperators():
         conv_layer3 = layers[4](prev_layer)
 
         if mutated_layer_indices is None:
-            random_picked_spot_index = index_of_suitable_spots[random.randint(2, number_of_suitable_spots-1)]
+            random_picked_spot_index = index_of_suitable_spots[random.randint(4, number_of_suitable_spots-1)]
             print('Selected layer by LAs mutation operator', random_picked_spot_index)
 
             for index, layer in enumerate(layers):
@@ -283,14 +284,15 @@ class SourceMutationOperators():
                 elif index % 3 == 1:
                     conv_layer3 = layer(conv_layer3)
 
-                if random_picked_spot_index >= 14:
-                    prev_layer = self.SMO_utils.LA_get_random_layer(prev_layer.shape)(prev_layer)
-                elif random_picked_spot_index % 3 == 2:
-                    conv_layer1 = self.SMO_utils.LA_get_random_layer(conv_layer1.shape)(conv_layer1)
-                elif random_picked_spot_index % 3 == 0:
-                    conv_layer2 = self.SMO_utils.LA_get_random_layer(conv_layer2.shape)(conv_layer2)
-                elif random_picked_spot_index % 3 == 1:
-                    conv_layer3 = self.SMO_utils.LA_get_random_layer(conv_layer3.shape)(conv_layer3)
+                if index == random_picked_spot_index:
+                    if random_picked_spot_index >= 14:
+                        prev_layer = self.SMO_utils.LA_get_random_layer(prev_layer.shape)(prev_layer)
+                    elif random_picked_spot_index % 3 == 2:
+                        conv_layer1 = self.SMO_utils.LA_get_random_layer(conv_layer1.shape)(conv_layer1)
+                    elif random_picked_spot_index % 3 == 0:
+                        conv_layer2 = self.SMO_utils.LA_get_random_layer(conv_layer2.shape)(conv_layer2)
+                    elif random_picked_spot_index % 3 == 1:
+                        conv_layer3 = self.SMO_utils.LA_get_random_layer(conv_layer3.shape)(conv_layer3)
 
         else:
             self.check.in_suitable_indices_check(index_of_suitable_spots, mutated_layer_indices)
@@ -310,14 +312,15 @@ class SourceMutationOperators():
                 elif index % 3 == 1:
                     conv_layer3 = layer(conv_layer3)
 
-                if random_picked_spot_index >= 14:
-                    prev_layer = self.SMO_utils.LA_get_random_layer(prev_layer.shape)(prev_layer)
-                elif random_picked_spot_index % 3 == 2:
-                    conv_layer1 = self.SMO_utils.LA_get_random_layer(conv_layer1.shape)(conv_layer1)
-                elif random_picked_spot_index % 3 == 0:
-                    conv_layer2 = self.SMO_utils.LA_get_random_layer(conv_layer2.shape)(conv_layer2)
-                elif random_picked_spot_index % 3 == 1:
-                    conv_layer3 = self.SMO_utils.LA_get_random_layer(conv_layer3.shape)(conv_layer3)
+                if index == random_picked_spot_index:
+                    if random_picked_spot_index >= 14:
+                        prev_layer = self.SMO_utils.LA_get_random_layer(prev_layer.shape)(prev_layer)
+                    elif random_picked_spot_index % 3 == 2:
+                        conv_layer1 = self.SMO_utils.LA_get_random_layer(conv_layer1.shape)(conv_layer1)
+                    elif random_picked_spot_index % 3 == 0:
+                        conv_layer2 = self.SMO_utils.LA_get_random_layer(conv_layer2.shape)(conv_layer2)
+                    elif random_picked_spot_index % 3 == 1:
+                        conv_layer3 = self.SMO_utils.LA_get_random_layer(conv_layer3.shape)(conv_layer3)
 
         new_model = Model([new_input], [prev_layer])
 
@@ -325,7 +328,7 @@ class SourceMutationOperators():
 
     def AFRs_mut(self, train_dataset, model, mutated_layer_indices=None):
         # Copying and some assertions
-        deep_copied_model = self.model_utils.model_copy(model, 'AFRs')
+        deep_copied_model = self.model_utils.model_copy(model, self.network, 'AFRs')
         train_datas, train_labels = train_dataset
         copied_train_datas, copied_train_labels = train_datas.copy(), train_labels.copy()
         self.check.training_dataset_consistent_length_check(copied_train_datas, copied_train_labels)
@@ -348,14 +351,10 @@ class SourceMutationOperators():
         conv_layer3 = layers[4](prev_layer)
 
         if mutated_layer_indices is None:
-            random_picked_layer_index = index_of_suitable_layers[random.randint(2, number_of_suitable_layers-1)]
+            random_picked_layer_index = index_of_suitable_layers[random.randint(0, number_of_suitable_layers-1)]
             print('Seleced layer by AFRs mpatation operator', random_picked_layer_index)
 
             for index, layer in enumerate(layers):
-                if index == random_picked_layer_index:
-                    layer.activation = lambda x: x
-                    continue
-
                 if 0 <= index <= 4:
                     continue
 
@@ -369,13 +368,12 @@ class SourceMutationOperators():
                     conv_layer2 = layer(conv_layer2)
                 elif index % 3 == 1:
                     conv_layer3 = layer(conv_layer3)
+
+                if index == random_picked_layer_index:
+                    layer.activation = lambda x: x
         else:
             self.check.in_suitable_indices_check(index_of_suitable_layers, mutated_layer_indices)
             for index, layer in enumerate(layers):
-                if index in mutated_layer_indices:
-                    layer.activation = lambda x: x
-                    continue
-
                 if 0 <= index <= 4:
                     continue
 
@@ -389,6 +387,9 @@ class SourceMutationOperators():
                     conv_layer2 = layer(conv_layer2)
                 elif index % 3 == 1:
                     conv_layer3 = layer(conv_layer3)
+
+                if index in mutated_layer_indices:
+                    layer.activation = lambda x: x
 
         new_model = Model([new_input], [prev_layer])
 

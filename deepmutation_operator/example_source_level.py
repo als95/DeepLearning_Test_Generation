@@ -31,8 +31,8 @@ network = network_triage.TriageNetwork()
 
 # model is a simple FC(fully-connected) neural network
 # dataset is a subset from MNIST dataset with 5000 training data and 1000 testing data
-model = network.create_model()
 (train_datas, train_labels), (test_datas, test_labels) = network.load_data()
+model = network.create_model()
 
 print('train_datas shape:', train_datas.shape)
 print('train_labels shape:', train_labels.shape)

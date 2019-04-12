@@ -113,16 +113,13 @@ class ModelUtils():
         for key, value in layer_config.items():
             print(key, value)
 
-    def model_copy(self, model, mode=''):
+    def model_copy(self, model, network, mode=''):
         original_layers = [l for l in model.layers]
-        suffix = '_copy_' + mode 
-        new_model = keras.models.clone_model(model)
+        new_model = network.create_model()
         for index, layer in enumerate(new_model.layers):
             original_layer = original_layers[index]
             original_weights = original_layer.get_weights()
-            layer.name = layer.name + suffix
             layer.set_weights(original_weights)
-        new_model.name = new_model.name + suffix
         return new_model
 
     def get_booleans_of_layers_should_be_mutated(self, num_of_layers, indices):

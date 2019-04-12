@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
-import keras
 from keras import backend as K
 from keras import optimizers
 from keras.models import Model
+from keras.models import load_model
 from keras.objectives import categorical_crossentropy
 from keras.layers import Conv2D, MaxPooling2D, concatenate, Dense, Activation, Input, Reshape
 
@@ -18,7 +18,7 @@ class TriageNetwork:
         self.max_word_size = 500
         self.stack = 2
         self.sum_vec = 1
-        self.filter = 128
+        self.filter = 512
         self.word_preprocessor = WordPreprocessor()
         self.raw_data = self.word_preprocessor.data_preprocessing('input/desc.txt')
         self.word_vec_modeler = WordVecModeler(dim=self.word_dim)
@@ -87,7 +87,7 @@ class TriageNetwork:
 
     def load_model(self, name_of_file):
         file_name = name_of_file + '.h5'
-        return keras.models.load_model(file_name)
+        return load_model(file_name)
 
     def create_model(self):
         input = Input(shape=(self.max_word_size, self.word_dim))
@@ -123,13 +123,13 @@ class TriageNetwork:
                       metrics=['accuracy'])
         return model
 
-    def train_model(self, model, train_datas, train_labels, test_datas, test_labels, epochs=5, batch_size=5):
-        model.fit(train_datas, train_labels, epochs=epochs, batch_size=batch_size
-                  , validation_data=(test_datas, test_labels), verbose=False)
+    def train_model(self, model, train_datas, train_labels, test_datas, test_labels, batch_size=4, epochs=50):
+        model.fit(x = train_datas, y = train_labels, validation_data=(test_datas, test_labels)
+                  , batch_size=batch_size, epochs=epochs)
         return model
     
     def evaluate_model(self, model, test_datas, test_labels, mode='normal'):
-        loss, acc = model.evaluate(test_datas, test_labels)
+        loss, acc = model.evaluate(test_datas, test_labels, verbose=0)
         if mode == 'normal':
             print('Normal model accurancy: {:5.2f}%'.format(100*acc))
             print('')
@@ -152,7 +152,7 @@ class TriageNetwork:
         (train_datas, train_labels), (test_datas, test_labels) = self.load_data()
         model = self.create_model()
         model = self.compile_model(model)
-        model = self.train_model(model, train_datas, train_labels, test_datas. test_labels)
+        model = self.train_model(model, train_datas, train_labels, test_datas, test_labels)
 
         if verbose:
             print('Current tensorflow version:', tf.__version__)
@@ -166,4 +166,14 @@ class TriageNetwork:
 
             self.evaluate_model(model, test_datas, test_labels)
 
+        print("num of layer of mutated_model : ", len(model.layers))
+        num_of_mutated_model_weight = 0
+        for layer in model.layers:
+            if layer.get_weights():
+                num_of_mutated_model_weight += 1
+        print("num of weight of mutated_model : ", num_of_mutated_model_weight)
         self.save_model(model, 'normal_triage_model')
+
+if __name__ == "__main__":
+    network = TriageNetwork()
+    network.train_and_save_model("triage_model")

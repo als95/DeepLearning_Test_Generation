@@ -4,7 +4,7 @@ import utils
 import source_mut_operators
 import network_triage
 import tensorflow as tf
-
+import argparse
 
 class SourceMutatedModelGenerators:
 
@@ -13,10 +13,10 @@ class SourceMutatedModelGenerators:
         self.utils = utils.GeneralUtils()
 
         self.network = network_triage.TriageNetwork()
-        self.source_mut_opts = source_mut_operators.SourceMutationOperators()
+        self.source_mut_opts = source_mut_operators.SourceMutationOperators(self.network)
     
 
-    def integration_test(self, verbose=False):
+    def integration_test(self, verbose=False, start_point=0):
         modes = ['DR', 'LE', 'DM', 'DF', 'NP', 'LR', 'LAs', 'AFRs']
 
         # Model creation
@@ -25,8 +25,9 @@ class SourceMutatedModelGenerators:
         model = self.network.create_model()
 
         # Test for generate_model_by_source_mutation function 
-        for mode in modes:
-            self.generate_model_by_source_mutation(train_dataset, test_dataset, model, mode, verbose=verbose)
+        for index, mode in enumerate(modes):
+            if index >= int(start_point):
+                self.generate_model_by_source_mutation(train_dataset, test_dataset, model, mode, verbose=verbose)
 
 
     def generate_model_by_source_mutation(self, train_dataset, test_dataset, model, mode, verbose=False):
@@ -40,7 +41,6 @@ class SourceMutatedModelGenerators:
         suffix = '_model'
         name_of_saved_file = mode + suffix
         mutated_layer_indices = None
-
 
         lower_bound = 0
         upper_bound = 16
@@ -82,3 +82,13 @@ class SourceMutatedModelGenerators:
             self.network.evaluate_model(trained_mutated_model, test_datas, test_labels, mode)
 
         self.network.save_model(trained_mutated_model, name_of_saved_file, mode)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Main function for source mutated model generator")
+    parser.add_argument('start_point')
+
+    args = parser.parse_args()
+
+    source_mut_model_generators = SourceMutatedModelGenerators()
+    source_mut_model_generators.integration_test(False, args.start_point)
