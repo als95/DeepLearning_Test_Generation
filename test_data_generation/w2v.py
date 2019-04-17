@@ -7,7 +7,7 @@ import re
 from sklearn.feature_extraction.text import CountVectorizer
 
 
-class WordVecModeler:
+class WordVecModel:
     def __init__(self, dim):
         self.dim = dim
         self.model = None

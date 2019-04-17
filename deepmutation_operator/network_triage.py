@@ -21,6 +21,7 @@ class TriageNetwork:
         self.filter = 512
         self.word_preprocessor = WordPreprocessor()
         self.raw_data = self.word_preprocessor.data_preprocessing('input/desc.txt')
+        self.generated_data = self.word_preprocessor.data_preprocessing('generated_test_data.txt')
         self.word_vec_modeler = WordVecModeler(dim=self.word_dim)
         self.word_vec_modeler.load_word_vec("GoogleNews-vectors-negative300.bin")
         self.assign_size = 0
@@ -84,6 +85,71 @@ class TriageNetwork:
         test_labels = labels[int(len(labels) * (1 - test_percent)):]
 
         return (train_datas, train_labels), (test_datas, test_labels)
+
+
+    def load_generated_data(self):
+
+        assign_file = codecs.open('input/assignTo.txt', "r", "utf-8")
+        generated_assign_file = codecs.open('generated_assignTo.txt', "r", "utf-8")
+        raw_label = []
+
+        for line in assign_file:
+            line = line.strip()
+            raw_label.append(line)
+
+        test_data_size = len(raw_label)
+
+        for line in generated_assign_file:
+            line = line.strip()
+            raw_label.append(line)
+
+        le = preprocessing.LabelEncoder()
+        le.fit(raw_label)
+        enc = preprocessing.OneHotEncoder()
+        label_to_number = np.array(le.transform(raw_label))
+        label_to_number = np.reshape(label_to_number, [-1, 1])
+        enc.fit(label_to_number)
+        all_labels = enc.transform(label_to_number).toarray()
+
+        labels = all_labels[int(test_data_size):]
+
+        vec = None
+        vec_size = []
+        for idx, doc in enumerate(self.generated_data):
+            temp_arr = []
+            for word_idx, word in enumerate(doc):
+                if self.word_vec_modeler.get_vector_from_word(word) is not None:
+                    temp_arr.append(self.word_vec_modeler.get_vector_from_word(word))
+                if word_idx == self.max_word_size - 1:
+                    break
+
+            if len(temp_arr) == 0:
+                temp_arr.append(np.zeros(self.word_dim))
+
+            if len(temp_arr) < self.max_word_size:
+                for _ in range(self.max_word_size - len(temp_arr)):
+                    temp_arr.append(np.zeros(self.word_dim).tolist())
+
+            if vec is None:
+                vec = np.array(temp_arr)
+            else:
+                vec = np.vstack((vec, temp_arr))
+
+            vec_size.append(len(temp_arr))
+        vec = np.reshape(vec, (-1, self.max_word_size, self.word_dim))
+
+        resize_vec = np.zeros((len(vec), self.max_word_size // self.sum_vec, self.word_dim))
+        for idx, doc in enumerate(vec):
+            temp_doc_vec = np.zeros((self.max_word_size // self.sum_vec, self.word_dim))
+            for i in range(self.max_word_size // self.sum_vec):
+                temp_vec = np.zeros(self.word_dim)
+                for j in range(self.sum_vec):
+                    temp_vec = temp_vec + doc[i * self.sum_vec + j]
+                temp_doc_vec[i] = temp_vec
+            resize_vec[idx] = temp_doc_vec
+        datas = resize_vec
+
+        return datas, labels
 
     def load_model(self, name_of_file):
         file_name = name_of_file + '.h5'
